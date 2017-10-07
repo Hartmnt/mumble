@@ -67,12 +67,13 @@ QFlags<ChanACL::Perm> ChanACL::effectivePermissions(ServerUser *p, Channel *chan
 	}
 
 	// Default permissions
-	Permissions def = Traverse | Enter | Speak | Whisper | TextMessage;
+	Permissions def = Traverse | Enter | Speak | Whisper | TextMessage | Subscribe;
 
 	granted = def;
 
 	bool traverse = true;
 	bool write = false;
+	bool subscribe = true;
 	ChanACL *acl;
 
 	while (! chanstack.isEmpty()) {
@@ -88,6 +89,10 @@ QFlags<ChanACL::Perm> ChanACL::effectivePermissions(ServerUser *p, Channel *chan
 					traverse = true;
 				if (acl->pDeny & Traverse)
 					traverse = false;
+				if (acl->pAllow & Subscribe)
+					subscribe = true;
+				if (acl->pDeny & Subscribe)
+					subscribe = false;
 				if (acl->pAllow & Write)
 					write = true;
 				if (acl->pDeny & Write)
@@ -108,14 +113,14 @@ QFlags<ChanACL::Perm> ChanACL::effectivePermissions(ServerUser *p, Channel *chan
 				}
 			}
 		}
-		if (! traverse && ! write) {
+		if (! traverse && ! write && ! subscribe) {
 			granted = None;
 			break;
 		}
 	}
 
 	if (granted & Write) {
-		granted |= Traverse|Enter|MuteDeafen|Move|MakeChannel|LinkChannel|TextMessage|MakeTempChannel;
+		granted |= Traverse|Enter|MuteDeafen|Move|MakeChannel|LinkChannel|TextMessage|MakeTempChannel|Subscribe;
 		if (chan->iId == 0)
 			granted |= Kick|Ban|Register|SelfRegister;
 	}
@@ -168,6 +173,9 @@ QString ChanACL::whatsThis(Perm p) {
 		case MakeTempChannel:
 			return tr("This represents the permission to make a temporary subchannel. The user making the sub-channel will be added to the "
 			          "admin group of the sub-channel. Temporary channels are not stored and disappear when the last user leaves.");
+		case Subscribe:
+			return tr("This represents the permission to subscribe to this channel. Users without this privilege and not currently in this channel "
+			          " will not see any other users in this channel effectively hiding them.");
 		case LinkChannel:
 			return tr("This represents the permission to link channels. Users in linked channels hear each other, as long as "
 			          "the speaking user has the <i>speak</i> privilege in the channel of the listener. You need the link "
@@ -221,6 +229,8 @@ QString ChanACL::permName(Perm p) {
 			return tr("Make channel");
 		case MakeTempChannel:
 			return tr("Make temporary");
+		case Subscribe:
+			return tr("Subscribe");
 		case LinkChannel:
 			return tr("Link channel");
 		case TextMessage:
