@@ -1730,6 +1730,44 @@ void Server::userEnterChannel(User *p, Channel *c, MumbleProto::UserState &mpus)
 		sendClientPermission(static_cast<ServerUser *>(p), c->cParent);
 }
 
+void Server::fillUserStateForTransmit(ServerUser *uSource, ServerUser *u, MumbleProto::UserState &mpus) {
+	mpus.Clear();
+	mpus.set_session(u->uiSession);
+	mpus.set_name(u8(u->qsName));
+	if (u->iId >= 0)
+		mpus.set_user_id(u->iId);
+	if (uSource->uiVersion >= 0x010202) {
+		if (! u->qbaTextureHash.isEmpty())
+		        mpus.set_texture_hash(blob(u->qbaTextureHash));
+		else if (! u->qbaTexture.isEmpty())
+		        mpus.set_texture(blob(u->qbaTexture));
+	} else if ((uSource->qbaTexture.length() >= 4) && (qFromBigEndian<unsigned int>(reinterpret_cast<const unsigned char *>(uSource->qbaTexture.constData())) == 600 * 60 * 4)) {
+		mpus.set_texture(blob(u->qbaTexture));
+	}
+	if (u->cChannel->iId != 0)
+		mpus.set_channel_id(u->cChannel->iId);
+	if (u->bDeaf)
+		mpus.set_deaf(true);
+	else if (u->bMute)
+		mpus.set_mute(true);
+	if (u->bSuppress)
+		mpus.set_suppress(true);
+	if (u->bPrioritySpeaker)
+		mpus.set_priority_speaker(true);
+	if (u->bRecording)
+		mpus.set_recording(true);
+	if (u->bSelfDeaf)
+		mpus.set_self_deaf(true);
+	else if (u->bSelfMute)
+		mpus.set_self_mute(true);
+	if ((uSource->uiVersion >= 0x010202) && ! u->qbaCommentHash.isEmpty())
+		mpus.set_comment_hash(blob(u->qbaCommentHash));
+	else if (! u->qsComment.isEmpty())
+		mpus.set_comment(u8(u->qsComment));
+	if (! u->qsHash.isEmpty())
+		mpus.set_hash(u8(u->qsHash));
+}
+
 bool Server::hasPermission(ServerUser *p, Channel *c, QFlags<ChanACL::Perm> perm) {
 	QMutexLocker qml(&qmCache);
 	return ChanACL::hasPermission(p, c, perm, &acCache);

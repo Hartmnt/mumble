@@ -325,6 +325,8 @@ class Server : public QThread {
 		void userEnterChannel(User *u, Channel *c, MumbleProto::UserState &mpus);
 		bool unregisterUser(int id);
 
+		void fillUserStateForTransmit(ServerUser *uSource, ServerUser *u, MumbleProto::UserState &mpus);
+
 		Server(int snum, QObject *parent = NULL);
 		~Server();
 
