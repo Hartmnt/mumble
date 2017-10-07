@@ -315,14 +315,31 @@ void Server::msgAuthenticate(ServerUser *uSource, MumbleProto::Authenticate &msg
 		mpus.set_hash(u8(uSource->qsHash));
 	if (uSource->cChannel->iId != 0)
 		mpus.set_channel_id(uSource->cChannel->iId);
+	foreach(ServerUser *u, qhUsers) {
+		if (u->uiVersion < 0x010202)
+			continue;
 
-	sendAll(mpus, 0x010202);
+		//Do not send the user profile to not-subscribed clients
+		if (! isSubscribedToChannel(u, uSource->cChannel))
+			continue;
+
+		sendMessage(u, mpus);
+	}
 
 	if ((uSource->qbaTexture.length() >= 4) && (qFromBigEndian<unsigned int>(reinterpret_cast<const unsigned char *>(uSource->qbaTexture.constData())) == 600 * 60 * 4))
 		mpus.set_texture(blob(uSource->qbaTexture));
 	if (! uSource->qsComment.isEmpty())
 		mpus.set_comment(u8(uSource->qsComment));
-	sendAll(mpus, ~ 0x010202);
+	foreach(ServerUser *u, qhUsers) {
+		if (u->uiVersion >= 0x010202)
+			continue;
+
+		//Do not send the user profile to not-subscribed clients
+		if (! isSubscribedToChannel(u, uSource->cChannel))
+			continue;
+
+		sendMessage(u, mpus);
+	}
 
 	// Transmit other users profiles
 	foreach(ServerUser *u, qhUsers) {
@@ -330,6 +347,11 @@ void Server::msgAuthenticate(ServerUser *uSource, MumbleProto::Authenticate &msg
 			continue;
 
 		if (u == uSource)
+			continue;
+
+		//Do not send the profile of "u" to the authenticating client "uSource",
+		//if "uSource" is not subscribed to the channel of "u"
+		if (! isSubscribedToChannel(uSource, u->cChannel))
 			continue;
 
 		fillUserStateForTransmit(uSource, u, mpus);
@@ -688,7 +710,15 @@ void Server::msgUserState(ServerUser *uSource, MumbleProto::UserState &msg) {
 		else
 			mptm.set_message(u8(QString(QLatin1String("User '%1' stopped recording")).arg(pDstServerUser->qsName)));
 
-		sendAll(mptm, ~ 0x010203);
+		foreach(ServerUser *u, qhUsers) {
+			if (u->uiVersion >= 0x010203)
+				continue;
+
+			if (u != pDstServerUser && ! isSubscribedToChannel(u, pDstServerUser->cChannel))
+				continue;
+
+			sendMessage(u, mptm);
+		}
 
 		bBroadcast = true;
 	}
@@ -729,12 +759,28 @@ void Server::msgUserState(ServerUser *uSource, MumbleProto::UserState &msg) {
 		if (msg.has_texture() && (pDstServerUser->qbaTexture.length() >= 4) && (qFromBigEndian<unsigned int>(reinterpret_cast<const unsigned char *>(pDstServerUser->qbaTexture.constData())) != 600 * 60 * 4)) {
 			// This is a new style texture, don't send it because the client doesn't handle it correctly / crashes.
 			msg.clear_texture();
-			sendAll(msg, ~ 0x010202);
+			foreach(ServerUser *u, qhUsers) {
+				if (u->uiVersion >= 0x010202)
+					continue;
+
+				if (u != pDstServerUser && ! isSubscribedToChannel(u, pDstServerUser->cChannel))
+					continue;
+
+				sendMessage(u, msg);
+			}
 			msg.set_texture(blob(pDstServerUser->qbaTexture));
 		} else {
 			// This is an old style texture, empty texture or there was no texture in this packet,
 			// send the message unchanged.
-			sendAll(msg, ~ 0x010202);
+			foreach(ServerUser *u, qhUsers) {
+				if (u->uiVersion >= 0x010202)
+					continue;
+
+				if (u != pDstServerUser && ! isSubscribedToChannel(u, pDstServerUser->cChannel))
+					continue;
+
+				sendMessage(u, msg);
+			}
 		}
 
 		// Texture / comment handling for clients >= 1.2.2.
@@ -748,7 +794,17 @@ void Server::msgUserState(ServerUser *uSource, MumbleProto::UserState &msg) {
 			msg.set_comment_hash(blob(pDstServerUser->qbaCommentHash));
 		}
 
-		sendAll(msg, 0x010202);
+		foreach(ServerUser *u, qhUsers) {
+			if (u->uiVersion < 0x010202)
+				continue;
+
+			//Only send the state to user "u" if "pDstServerUser" is in
+			//a subscribed channel
+			if (u != pDstServerUser && ! isSubscribedToChannel(u, pDstServerUser->cChannel))
+				continue;
+
+			sendMessage(u, msg);
+		}
 
 		if (bDstAclChanged)
 			clearACLCache(pDstServerUser);
@@ -1314,6 +1370,13 @@ void Server::msgACL(ServerUser *uSource, MumbleProto::ACL &msg) {
 		Group *g;
 		ChanACL *a;
 
+		QHash<unsigned int, bool> hOldSubscribed;
+
+		foreach(ServerUser *u, qhUsers) {
+			//Remember old subscription states of user "u" for channel "c"
+			hOldSubscribed.insert(u->uiSession, isSubscribedToChannel(u, c));
+		}
+
 		{
 			QWriteLocker wl(&qrwlVoiceThread);
 
@@ -1386,6 +1449,33 @@ void Server::msgACL(ServerUser *uSource, MumbleProto::ACL &msg) {
 
 
 		updateChannel(c);
+
+		MumbleProto::UserState mpusOther;
+		MumbleProto::UserRemove mpurOther; 
+		foreach(ServerUser *u, qhUsers) {
+			bool perm = isSubscribedToChannel(u, c);
+			bool old = hOldSubscribed.value(u->uiSession);
+
+			//Ignore if subscription state did not change
+			if (perm == old)
+				continue;
+
+			if (perm) {
+				//Send user "u" all clients which are now visible in "c"
+				foreach(User *other, c->qlUsers) {
+					Server::fillUserStateForTransmit(u, static_cast<ServerUser *>(other), mpusOther);
+					sendMessage(u, mpusOther);
+				}
+			} else {
+				//Send "u" disconnects for all invisible clients in "c"
+				foreach(User *other, c->qlUsers) {
+					mpurOther.Clear();
+					mpurOther.set_session(other->uiSession);
+					sendMessage(u, mpurOther);
+				}
+			}
+		}
+
 		log(uSource, QString("Updated ACL in channel %1").arg(*c));
 	}
 }
@@ -1634,6 +1724,11 @@ void Server::msgCodecVersion(ServerUser *, MumbleProto::CodecVersion &) {
 void Server::msgUserStats(ServerUser*uSource, MumbleProto::UserStats &msg) {
 	MSG_SETUP_NO_UNIDLE(ServerUser::Authenticated);
 	VICTIM_SETUP;
+
+	//Ignore request, if "uSource" does not subscribe to "pDstServerUser->cChannel"
+	if (uSource != pDstServerUser && ! isSubscribedToChannel(uSource, pDstServerUser->cChannel))
+		return;
+
 	const BandwidthRecord &bwr = pDstServerUser->bwr;
 	const QList<QSslCertificate> &certs = pDstServerUser->peerCertificateChain();
 

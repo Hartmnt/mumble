@@ -1434,7 +1434,17 @@ void Server::connectionClosed(QAbstractSocket::SocketError err, const QString &r
 	if (u->sState == ServerUser::Authenticated) {
 		MumbleProto::UserRemove mpur;
 		mpur.set_session(u->uiSession);
-		sendExcept(u, mpur);
+		foreach(ServerUser *other, qhUsers) {
+			//Do not send disconnect message to the source
+			if(other == u)
+				continue;
+
+			//Do not send disconnect message if the client is not able to see the source anyway
+			if(! isSubscribedToChannel(other, u->cChannel))
+				continue;
+
+			sendMessage(other, mpur);
+		}
 
 		emit userDisconnected(u);
 	}
@@ -1703,6 +1713,49 @@ void Server::userEnterChannel(User *p, Channel *c, MumbleProto::UserState &mpus)
 		return;
 
 	Channel *old = p->cChannel;
+
+	MumbleProto::UserState mpusOther;
+	MumbleProto::UserRemove mpurOther;    
+
+	const bool initalConnect = (old == NULL);
+	const bool selfOldChannelSubscribed = hasPermission(static_cast<ServerUser *>(p), old, ChanACL::Subscribe);
+	const bool selfNewChannelSubscribed = hasPermission(static_cast<ServerUser *>(p), c, ChanACL::Subscribe);
+
+	foreach (ServerUser *u, qhUsers) {
+		if (u == p)
+			continue;
+
+		const bool otherIsSubscribedOld = isSubscribedToChannel(u, old);
+		const bool otherIsSubscribedNew = isSubscribedToChannel(u, c);
+		const bool inOldChannel = (u->cChannel == old);
+		const bool inNewChannel = (u->cChannel == c);
+
+		//Make the channel changing user "p" visible to all "u" which could not see them before
+		if (! otherIsSubscribedOld && otherIsSubscribedNew) {
+			fillUserStateForTransmit(u, static_cast<ServerUser *>(p), mpusOther);
+			sendMessage(u, mpusOther);
+		}
+
+		//Make all users of the new channel "u" visible to "p", if "p" was not subscribed
+		if (! selfNewChannelSubscribed && inNewChannel) {
+			fillUserStateForTransmit(static_cast<ServerUser *>(p), u, mpusOther);
+			sendMessage(static_cast<ServerUser *>(p), mpusOther);
+		}
+
+		//Make the channel changing user "p" invisible to all "u" which are not subscribed to the new channel
+		if (! initalConnect && ! otherIsSubscribedNew && otherIsSubscribedOld) {
+			mpurOther.Clear();
+			mpurOther.set_session(p->uiSession);
+			sendMessage(u, mpurOther);
+		}
+
+		//Make all users of the old channel "u" invisible to "p", if "p" is / was not subscribed to the old channel
+		if (! initalConnect && ! selfOldChannelSubscribed && inOldChannel) {
+			mpurOther.Clear();
+			mpurOther.set_session(u->uiSession);
+			sendMessage(static_cast<ServerUser *>(p), mpurOther);
+		}
+	}
 
 	{
 		QWriteLocker wl(&qrwlVoiceThread);
