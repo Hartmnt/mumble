@@ -289,6 +289,7 @@ class Server : public QThread {
 
 		bool checkDecrypt(ServerUser *u, const char *encrypted, char *plain, unsigned int cryptlen);
 
+		bool isSubscribedToChannel(ServerUser *p, Channel *c);
 		bool hasPermission(ServerUser *p, Channel *c, QFlags<ChanACL::Perm> perm);
 		QFlags<ChanACL::Perm> effectivePermissions(ServerUser *p, Channel *c);
 		void sendClientPermission(ServerUser *u, Channel *c, bool updatelast = false);

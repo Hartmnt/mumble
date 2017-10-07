@@ -1768,6 +1768,10 @@ void Server::fillUserStateForTransmit(ServerUser *uSource, ServerUser *u, Mumble
 		mpus.set_hash(u8(u->qsHash));
 }
 
+bool Server::isSubscribedToChannel(ServerUser *p, Channel *c) {
+	return ((p->cChannel == c) || hasPermission(p, c, ChanACL::Subscribe));
+}
+
 bool Server::hasPermission(ServerUser *p, Channel *c, QFlags<ChanACL::Perm> perm) {
 	QMutexLocker qml(&qmCache);
 	return ChanACL::hasPermission(p, c, perm, &acCache);
