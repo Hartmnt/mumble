@@ -9,6 +9,8 @@
 #include <QCryptographicHash>
 #include <QString>
 
+#include <memory>
+
 class QObject;
 class QStringList;
 
@@ -34,6 +36,12 @@ namespace QtUtils {
 
 }; // namespace QtUtils
 }; // namespace Mumble
+
+template< typename T > using qt_unique_ptr = std::unique_ptr< T, decltype(&Mumble::QtUtils::deleteQObject) >;
+
+template< typename T > qt_unique_ptr< T > createQtUniquePtr(T *object) {
+	return qt_unique_ptr< T >{ object, Mumble::QtUtils::deleteQObject };
+}
 
 // For backwards compatibility we have to keep these functions in the global namespace
 inline QString u8(const ::std::string &str) {
