@@ -515,6 +515,8 @@ bool AudioOutput::mix(void *outbuff, unsigned int frameCount) {
 						volumeAdjustment *= adjustFactor;
 					}
 				}
+			} else {
+				volumeAdjustment = (Global::get().s.iNotificationVolume / 100.0);
 			}
 
 			// As the events may cause the output PCM to change, the connection has to be direct in any case
