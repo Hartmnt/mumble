@@ -69,6 +69,7 @@ const SettingsKey EXCLUSIVE_OUTPUT_KEY                        = { "exclusive_out
 const SettingsKey INPUT_SYSTEM_KEY                            = { "input_system" };
 const SettingsKey OUTPUT_SYSTEM_KEY                           = { "output_system" };
 const SettingsKey NOTIFICATION_VOLUME_KEY                     = { "notification_volume" };
+const SettingsKey CUE_VOLUME_KEY                              = { "cue_volume" };
 const SettingsKey RESTRICT_WHISPERS_TO_FRIENDS_KEY            = { "restrict_whispers_to_friends" };
 const SettingsKey NOTIFICATION_USER_LIMIT_KEY                 = { "notification_user_limit" };
 

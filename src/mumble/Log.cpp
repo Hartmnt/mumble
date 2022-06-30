@@ -241,7 +241,8 @@ void LogConfig::load(const Settings &r) {
 	qcbEnableTTS->setChecked(r.bTTS);
 
 #endif
-	loadSlider(qsNotificationVolume, r.iNotificationVolume);
+	loadSlider(qsNotificationVolume, qRound(log2(r.fNotificationVolume) * 6.0));
+	loadSlider(qsCueVolume, qRound(log2(r.fCueVolume) * 6.0));
 	qcbWhisperFriends->setChecked(r.bWhisperFriends);
 	qsbMessageLimitUsers->setValue(r.iMessageLimitUserThreshold);
 }
@@ -285,7 +286,8 @@ void LogConfig::save() const {
 	s.bTTSNoAuthor        = qcbNoAuthor->isChecked();
 	s.bTTS                = qcbEnableTTS->isChecked();
 #endif
-	s.iNotificationVolume        = qsNotificationVolume->value();
+	s.fNotificationVolume        = static_cast< float >(pow(2.0, qsNotificationVolume->value() / 6.0));
+	s.fCueVolume                 = static_cast< float >(pow(2.0, qsCueVolume->value() / 6.0));
 	s.bWhisperFriends            = qcbWhisperFriends->isChecked();
 	s.iMessageLimitUserThreshold = qsbMessageLimitUsers->value();
 }
@@ -335,7 +337,7 @@ void LogConfig::on_qtwMessages_itemClicked(QTreeWidgetItem *item, int column) {
 	if (item && item != allMessagesItem && column == ColStaticSoundPath) {
 		AudioOutputPtr ao = Global::get().ao;
 		if (ao) {
-			if (!ao->playSample(item->text(ColStaticSoundPath), false))
+			if (!ao->playSample(item->text(ColStaticSoundPath), Global::get().s.fNotificationVolume))
 				browseForAudioFile();
 		}
 	}
@@ -355,6 +357,23 @@ void LogConfig::browseForAudioFile() {
 		i->setCheckState(ColStaticSound, Qt::Checked);
 	}
 }
+
+void LogConfig::on_qsNotificationVolume_valueChanged(int value) {
+	qsbNotificationVolume->setValue(value);
+}
+
+void LogConfig::on_qsCueVolume_valueChanged(int value) {
+	qsbCueVolume->setValue(value);
+}
+
+void LogConfig::on_qsbNotificationVolume_valueChanged(int value) {
+	qsNotificationVolume->setValue(value);
+}
+
+void LogConfig::on_qsbCueVolume_valueChanged(int value) {
+	qsCueVolume->setValue(value);
+}
+
 
 QMutex Log::qmDeferredLogs;
 QVector< LogMessage > Log::qvDeferredLogs;
@@ -754,7 +773,7 @@ void Log::log(MsgType mt, const QString &console, const QString &terse, bool own
 			&& !(flags & Settings::LogMessageLimit && connectedUsers > Global::get().s.iMessageLimitUserThreshold)) {
 			QString sSound    = Global::get().s.qmMessageSounds.value(mt);
 			AudioOutputPtr ao = Global::get().ao;
-			if (!ao || !ao->playSample(sSound, false)) {
+			if (!ao || !ao->playSample(sSound, Global::get().s.fNotificationVolume)) {
 				qWarning() << "Sound file" << sSound << "is not a valid audio file, fallback to TTS.";
 				flags ^= Settings::LogSoundfile | Settings::LogTTS; // Fallback to TTS
 			}

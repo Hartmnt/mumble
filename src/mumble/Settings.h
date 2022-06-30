@@ -216,7 +216,8 @@ struct Settings {
 	bool bDeaf                     = false;
 	bool bTTS                      = false;
 	bool bUserTop                  = true;
-	int iNotificationVolume        = 100;
+	float fNotificationVolume      = 1.0f;
+	float fCueVolume               = 1.0f;
 	bool bWhisperFriends           = false;
 	int iMessageLimitUserThreshold = 20;
 	bool bTTSMessageReadBack       = false;

@@ -202,26 +202,48 @@
      </property>
      <layout class="QVBoxLayout" name="verticalLayout">
       <item>
-       <layout class="QGridLayout" name="gridLayout">
-        <item row="0" column="1">
-         <widget class="QSlider" name="qsNotificationVolume">
+       <layout class="QGridLayout" name="qgbSoundVolume">
+        <item row="0" column="2">
+         <widget class="QSpinBox" name="qsbNotificationVolume">
           <property name="toolTip">
            <string>Volume of notification sounds</string>
           </property>
           <property name="whatsThis">
-           <string>&lt;b&gt;This is the volume used for all notification sounds.&lt;/b&gt;</string>
+           <string>&lt;b&gt;This is the volume used for notification sounds.&lt;/b&gt;</string>
+          </property>
+          <property name="suffix">
+           <string> dB</string>
+          </property>
+          <property name="minimum">
+           <number>-60</number>
           </property>
           <property name="maximum">
-           <number>200</number>
+           <number>30</number>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="1">
+         <widget class="QSlider" name="qsCueVolume">
+          <property name="toolTip">
+           <string>Volume of audio cues</string>
+          </property>
+          <property name="whatsThis">
+           <string>&lt;b&gt;This is the volume used for audio cues.&lt;/b&gt;</string>
+          </property>
+          <property name="minimum">
+           <number>-60</number>
+          </property>
+          <property name="maximum">
+           <number>30</number>
           </property>
           <property name="singleStep">
-           <number>5</number>
+           <number>1</number>
           </property>
           <property name="pageStep">
-           <number>20</number>
+           <number>10</number>
           </property>
           <property name="value">
-           <number>100</number>
+           <number>0</number>
           </property>
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
@@ -238,6 +260,72 @@
          <widget class="QLabel" name="qlNotificationVolume">
           <property name="text">
            <string>Notification sound volume</string>
+          </property>
+          <property name="margin">
+           <number>0</number>
+          </property>
+          <property name="buddy">
+           <cstring>qsNotificationVolume</cstring>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="2">
+         <widget class="QSpinBox" name="qsbCueVolume">
+          <property name="toolTip">
+           <string>Volume of audio cues</string>
+          </property>
+          <property name="whatsThis">
+           <string>&lt;b&gt;This is the volume used for audio cues.&lt;/b&gt;</string>
+          </property>
+          <property name="suffix">
+           <string> dB</string>
+          </property>
+          <property name="minimum">
+           <number>-60</number>
+          </property>
+          <property name="maximum">
+           <number>30</number>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QSlider" name="qsNotificationVolume">
+          <property name="toolTip">
+           <string>Volume of notification sounds</string>
+          </property>
+          <property name="whatsThis">
+           <string>&lt;b&gt;This is the volume used for notification sounds.&lt;/b&gt;</string>
+          </property>
+          <property name="minimum">
+           <number>-60</number>
+          </property>
+          <property name="maximum">
+           <number>30</number>
+          </property>
+          <property name="singleStep">
+           <number>1</number>
+          </property>
+          <property name="pageStep">
+           <number>10</number>
+          </property>
+          <property name="value">
+           <number>0</number>
+          </property>
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="tickPosition">
+           <enum>QSlider::TicksBelow</enum>
+          </property>
+          <property name="tickInterval">
+           <number>10</number>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0">
+         <widget class="QLabel" name="qlCueVolume">
+          <property name="text">
+           <string>Audio cue volume</string>
           </property>
           <property name="margin">
            <number>0</number>

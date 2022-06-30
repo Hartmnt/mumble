@@ -819,7 +819,6 @@ void Settings::legacyLoad(const QString &path) {
 	LOAD(bPositionalHeadphone, "audio/headphone");
 	LOAD(qsAudioInput, "audio/input");
 	LOAD(qsAudioOutput, "audio/output");
-	LOAD(iNotificationVolume, "audio/notificationvolume");
 	LOAD(bWhisperFriends, "audio/whisperfriends");
 	LOAD(iMessageLimitUserThreshold, "audio/messagelimitusers");
 	LOAD(bTransmitPosition, "audio/postransmit");

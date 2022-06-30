@@ -1628,7 +1628,7 @@ void MumbleAPI::playSample_v_1_0_x(mumble_plugin_id_t callerID, const char *samp
 		EXIT_WITH(MUMBLE_EC_AUDIO_NOT_AVAILABLE);
 	}
 
-	if (Global::get().ao->playSample(QString::fromUtf8(samplePath), false)) {
+	if (Global::get().ao->playSample(QString::fromUtf8(samplePath), 1.0f, false)) {
 		EXIT_WITH(MUMBLE_STATUS_OK);
 	} else {
 		EXIT_WITH(MUMBLE_EC_INVALID_SAMPLE);
