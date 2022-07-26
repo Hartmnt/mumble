@@ -6,11 +6,8 @@
 #ifndef MUMBLE_MUMBLE_API_H_
 #define MUMBLE_MUMBLE_API_H_
 
-// In here the MumbleAPI struct is defined
-#define EXTERNAL_MUMBLE_PLUGIN_API_NO_MUMBLE_API_T_DEFINE
-#include "MumbleAPI_v_1_0_x.h"
-#include "MumbleAPI_v_1_2_x.h"
-#undef EXTERNAL_MUMBLE_PLUGIN_API_NO_MUMBLE_API_T_DEFINE
+// In here Mumble API structs for all versions are defined
+#include "MumbleAPI_structs.h"
 
 #include <atomic>
 #include <functional>

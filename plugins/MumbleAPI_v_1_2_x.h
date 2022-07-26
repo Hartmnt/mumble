@@ -12,10 +12,12 @@
 #include <stdint.h>
 
 
+#ifndef EXTERNAL_MUMBLE_PLUGIN_API_NO_AUXILIARY_DEFINITIONS
+
 // API version
-#define MUMBLE_PLUGIN_API_MAJOR_MACRO 1
-#define MUMBLE_PLUGIN_API_MINOR_MACRO 2
-#define MUMBLE_PLUGIN_API_PATCH_MACRO 0
+#	define MUMBLE_PLUGIN_API_MAJOR_MACRO 1
+#	define MUMBLE_PLUGIN_API_MINOR_MACRO 2
+#	define MUMBLE_PLUGIN_API_PATCH_MACRO 0
 
 const int32_t MUMBLE_PLUGIN_API_MAJOR            = MUMBLE_PLUGIN_API_MAJOR_MACRO;
 const int32_t MUMBLE_PLUGIN_API_MINOR            = MUMBLE_PLUGIN_API_MINOR_MACRO;
@@ -25,13 +27,14 @@ const mumble_version_t MUMBLE_PLUGIN_API_VERSION = { MUMBLE_PLUGIN_API_MAJOR, MU
 
 // Create macro for casting the pointer to the API object to the proper struct.
 // Note that this must only be used if the API uses MUMBLE_PLUGIN_API_VERSION of the API.
-#define MUMBLE_CONCAT_HELPER(a, b) a##_##b
-#define MUMBLE_CONCAT(a, b) MUMBLE_CONCAT_HELPER(a, b)
-#define MUMBLE_API_STRUCT      \
-	MUMBLE_CONCAT(MumbleAPI_v, \
-				  MUMBLE_CONCAT(MUMBLE_PLUGIN_API_MAJOR_MACRO, MUMBLE_CONCAT(MUMBLE_PLUGIN_API_MINOR_MACRO, x)))
-#define MUMBLE_API_CAST(ptrName) (*((struct MUMBLE_API_STRUCT *) ptrName))
+#	define MUMBLE_CONCAT_HELPER(a, b) a##_##b
+#	define MUMBLE_CONCAT(a, b) MUMBLE_CONCAT_HELPER(a, b)
+#	define MUMBLE_API_STRUCT      \
+		MUMBLE_CONCAT(MumbleAPI_v, \
+					  MUMBLE_CONCAT(MUMBLE_PLUGIN_API_MAJOR_MACRO, MUMBLE_CONCAT(MUMBLE_PLUGIN_API_MINOR_MACRO, x)))
+#	define MUMBLE_API_CAST(ptrName) (*((struct MUMBLE_API_STRUCT *) ptrName))
 
+#endif // EXTERNAL_MUMBLE_PLUGIN_API_NO_AUXILIARY_DEFINITIONS
 
 struct MumbleAPI_v_1_2_x {
 	/////////////////////////////////////////////////////////
@@ -529,7 +532,7 @@ struct MumbleAPI_v_1_2_x {
 														  float volume);
 };
 
-#ifndef EXTERNAL_MUMBLE_PLUGIN_API_NO_MUMBLE_API_T_DEFINE
+#ifndef EXTERNAL_MUMBLE_PLUGIN_API_NO_AUXILIARY_DEFINITIONS
 typedef struct MumbleAPI_v_1_2_x mumble_api_t;
 #endif
 
