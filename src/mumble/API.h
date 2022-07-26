@@ -7,7 +7,10 @@
 #define MUMBLE_MUMBLE_API_H_
 
 // In here the MumbleAPI struct is defined
+#define EXTERNAL_MUMBLE_PLUGIN_API_NO_MUMBLE_API_T_DEFINE
 #include "MumbleAPI_v_1_0_x.h"
+#include "MumbleAPI_v_1_2_x.h"
+#undef EXTERNAL_MUMBLE_PLUGIN_API_NO_MUMBLE_API_T_DEFINE
 
 #include <atomic>
 #include <functional>
@@ -158,6 +161,8 @@ public slots:
 	void log_v_1_0_x(mumble_plugin_id_t callerID, const char *message, std::shared_ptr< api_promise_t > promise);
 	void playSample_v_1_0_x(mumble_plugin_id_t callerID, const char *samplePath,
 							std::shared_ptr< api_promise_t > promise);
+	void playSample_v_1_2_x(mumble_plugin_id_t callerID, const char *samplePath, float volume,
+							std::shared_ptr< api_promise_t > promise);
 
 
 private:
@@ -168,6 +173,9 @@ private:
 
 /// @returns The Mumble API struct (v1.0.x)
 MumbleAPI_v_1_0_x getMumbleAPI_v_1_0_x();
+
+/// @returns The Mumble API struct (v1.2.x)
+MumbleAPI_v_1_2_x getMumbleAPI_v_1_2_x();
 
 /// Converts from the Qt key-encoding to the API's key encoding.
 ///

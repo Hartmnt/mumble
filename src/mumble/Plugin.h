@@ -6,7 +6,11 @@
 #ifndef MUMBLE_MUMBLE_PLUGIN_H_
 #define MUMBLE_MUMBLE_PLUGIN_H_
 
+#define EXTERNAL_MUMBLE_PLUGIN_API_NO_MUMBLE_API_T_DEFINE
 #include "MumbleAPI_v_1_0_x.h"
+#include "MumbleAPI_v_1_2_x.h"
+#undef EXTERNAL_MUMBLE_PLUGIN_API_NO_MUMBLE_API_T_DEFINE
+
 #define MUMBLE_PLUGIN_NO_DEFAULT_FUNCTION_DEFINITIONS
 #include "MumblePlugin_v_1_1_x.h"
 #include "PluginComponents_v_1_0_x.h"
