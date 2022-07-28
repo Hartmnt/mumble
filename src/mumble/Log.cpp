@@ -17,6 +17,7 @@
 #	include "TextToSpeech.h"
 #endif
 #include "Utils.h"
+#include "VolumeAdjustment.h"
 #include "Global.h"
 
 #include <QSignalBlocker>
@@ -241,8 +242,8 @@ void LogConfig::load(const Settings &r) {
 	qcbEnableTTS->setChecked(r.bTTS);
 
 #endif
-	loadSlider(qsNotificationVolume, qRound(log2(r.fNotificationVolume) * 6.0));
-	loadSlider(qsCueVolume, qRound(log2(r.fCueVolume) * 6.0));
+	loadSlider(qsNotificationVolume, static_cast< int >(roundf(VolumeAdjustment::toDBAdjustment(r.fNotificationVolume))));
+	loadSlider(qsCueVolume, static_cast< int >(roundf(VolumeAdjustment::toDBAdjustment(r.fCueVolume))));
 	qcbWhisperFriends->setChecked(r.bWhisperFriends);
 	qsbMessageLimitUsers->setValue(r.iMessageLimitUserThreshold);
 }
@@ -286,8 +287,8 @@ void LogConfig::save() const {
 	s.bTTSNoAuthor        = qcbNoAuthor->isChecked();
 	s.bTTS                = qcbEnableTTS->isChecked();
 #endif
-	s.fNotificationVolume        = static_cast< float >(pow(2.0, qsNotificationVolume->value() / 6.0));
-	s.fCueVolume                 = static_cast< float >(pow(2.0, qsCueVolume->value() / 6.0));
+	s.fNotificationVolume        = VolumeAdjustment::toFactor(qsNotificationVolume->value());
+	s.fCueVolume                 = VolumeAdjustment::toFactor(qsCueVolume->value());
 	s.bWhisperFriends            = qcbWhisperFriends->isChecked();
 	s.iMessageLimitUserThreshold = qsbMessageLimitUsers->value();
 }
