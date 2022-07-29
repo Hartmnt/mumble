@@ -163,13 +163,13 @@ AudioOutputSample::AudioOutputSample(const QString &name, SoundFile *psndfile, f
 	}
 
 	iLastConsume = iBufferFilled = 0;
-	fVolume                      = volume;
+	m_volume                     = volume;
 	bLoop                        = loop;
 	bEof                         = false;
 }
 
 float AudioOutputSample::getVolume() const {
-	return fVolume;
+	return m_volume;
 }
 
 AudioOutputSample::~AudioOutputSample() {

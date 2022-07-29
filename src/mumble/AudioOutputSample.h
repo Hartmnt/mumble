@@ -56,7 +56,7 @@ protected:
 	bool bLoop;
 	bool bEof;
 
-	float fVolume;
+	float m_volume;
 signals:
 	void playbackFinished();
 
