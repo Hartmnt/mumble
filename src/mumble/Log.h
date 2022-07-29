@@ -26,6 +26,12 @@ private:
 
 	QTreeWidgetItem *allMessagesItem;
 
+	// Volume sliders update their setting in real-time.
+	// These variables are used to revert to the original value on reject.
+	void closeEvent(QCloseEvent *event);
+	int m_originalCueVolume;
+	int m_originalNotificationVolume;
+
 protected:
 	void updateSelectAllButtons();
 

@@ -245,8 +245,10 @@ void LogConfig::load(const Settings &r) {
 	qcbEnableTTS->setChecked(r.bTTS);
 
 #endif
-	loadSlider(qsNotificationVolume, VolumeAdjustment::toRoundedDBAdjustment(r.notificationVolume));
-	loadSlider(qsCueVolume, VolumeAdjustment::toRoundedDBAdjustment(r.cueVolume));
+	m_originalNotificationVolume = VolumeAdjustment::toRoundedDBAdjustment(r.notificationVolume);
+	m_originalCueVolume          = VolumeAdjustment::toRoundedDBAdjustment(r.cueVolume);
+	loadSlider(qsNotificationVolume, m_originalNotificationVolume);
+	loadSlider(qsCueVolume, m_originalCueVolume);
 	qcbWhisperFriends->setChecked(r.bWhisperFriends);
 	qsbMessageLimitUsers->setValue(r.iMessageLimitUserThreshold);
 }
@@ -290,6 +292,8 @@ void LogConfig::save() const {
 	s.bTTSNoAuthor        = qcbNoAuthor->isChecked();
 	s.bTTS                = qcbEnableTTS->isChecked();
 #endif
+	m_originalNotificationVolume = qsNotificationVolume->value();
+	m_originalCueVolume          = qsCueVolume->value();
 	s.notificationVolume         = VolumeAdjustment::toFactor(qsNotificationVolume->value());
 	s.cueVolume                  = VolumeAdjustment::toFactor(qsCueVolume->value());
 	s.bWhisperFriends            = qcbWhisperFriends->isChecked();
@@ -301,6 +305,13 @@ void LogConfig::accept() const {
 	Global::get().l->tts->setVolume(s.iTTSVolume);
 #endif
 	Global::get().mw->qteLog->document()->setMaximumBlockCount(s.iMaxLogBlocks);
+}
+
+void LogConfig::closeEvent(QCloseEvent *event)
+{
+	s.notificationVolume = VolumeAdjustment::toFactor(m_originalNotificationVolume);
+	s.cueVolume          = VolumeAdjustment::toFactor(m_originalCueVolume);
+	ConfigWidget::closeEvent(event);
 }
 
 void LogConfig::on_qtwMessages_itemChanged(QTreeWidgetItem *i, int column) {
@@ -363,11 +374,13 @@ void LogConfig::browseForAudioFile() {
 }
 
 void LogConfig::on_qsNotificationVolume_valueChanged(int value) {
-	qsbNotificationVolume->setValue(value);
+	s.notificationVolume = value;
+	qsbNotificationVolume->setValue(VolumeAdjustment::toFactor(value));
 }
 
 void LogConfig::on_qsCueVolume_valueChanged(int value) {
-	qsbCueVolume->setValue(value);
+	s.cueVolume = value;
+	qsbCueVolume->setValue(VolumeAdjustment::toFactor(value));
 }
 
 void LogConfig::on_qsbNotificationVolume_valueChanged(int value) {
