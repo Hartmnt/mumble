@@ -40,7 +40,7 @@ static ConfigRegistrar registrarLog(4000, LogConfigDialogNew);
 LogConfig::LogConfig(Settings &st) : ConfigWidget(st) {
 	setupUi(this);
 	qtwMessages->setAccessibleName(tr("Log messages"));
-	qsVolume->setAccessibleName(tr("TTS engine volume"));
+	qsTTSVolume->setAccessibleName(tr("TTS engine volume"));
 	qsbThreshold->setAccessibleName(tr("Length threshold"));
 	qsbMessageLimitUsers->setAccessibleName(tr("User limit for message limiting"));
 	qsbMaxBlocks->setAccessibleName(tr("Maximum chat length"));
@@ -48,6 +48,7 @@ LogConfig::LogConfig(Settings &st) : ConfigWidget(st) {
 
 #ifdef USE_NO_TTS
 	qgbTTS->setDisabled(true);
+	qsTTSVolume->setDisabled(true);
 #endif
 
 	qtwMessages->header()->setSectionResizeMode(ColMessage, QHeaderView::Stretch);
@@ -233,8 +234,10 @@ void LogConfig::load(const Settings &r) {
 
 #ifdef USE_NO_TTS
 	qtwMessages->hideColumn(ColTTS);
+	qsTTSVolume->hide();
+	qlTTSVolume->hide();
 #else
-	loadSlider(qsVolume, r.iTTSVolume);
+	loadSlider(qsTTSVolume, r.iTTSVolume);
 	qsbThreshold->setValue(r.iTTSThreshold);
 	qcbReadBackOwn->setChecked(r.bTTSMessageReadBack);
 	qcbNoScope->setChecked(r.bTTSNoScope);
@@ -280,7 +283,7 @@ void LogConfig::save() const {
 	s.iChatMessageMargins = qsbChatMessageMargins->value();
 
 #ifndef USE_NO_TTS
-	s.iTTSVolume          = qsVolume->value();
+	s.iTTSVolume          = qsTTSVolume->value();
 	s.iTTSThreshold       = qsbThreshold->value();
 	s.bTTSMessageReadBack = qcbReadBackOwn->isChecked();
 	s.bTTSNoScope         = qcbNoScope->isChecked();
