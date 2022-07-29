@@ -59,7 +59,7 @@ UserLocalVolumeDialog::UserLocalVolumeDialog(unsigned int sessionId,
 		setWindowTitle(title);
 
 		// Calculate the db-shift from the set volume-factor
-		int dbShift = static_cast< int >(roundf(VolumeAdjustment::toDBAdjustment(user->getLocalVolumeAdjustments())));
+		int dbShift = VolumeAdjustment::toRoundedDBAdjustment(user->getLocalVolumeAdjustments());
 		qsUserLocalVolume->setValue(dbShift);
 
 		m_originalVolumeAdjustmentDecibel = qsUserLocalVolume->value();

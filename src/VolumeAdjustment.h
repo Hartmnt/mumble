@@ -19,6 +19,7 @@ public:
 
 	static float toFactor(int dbAdjustment);
 	static float toDBAdjustment(float factor);
+	static int toRoundedDBAdjustment(float factor);
 
 	static VolumeAdjustment fromFactor(float factor);
 	static VolumeAdjustment fromDBAdjustment(int dbAdjustment);

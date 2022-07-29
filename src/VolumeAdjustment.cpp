@@ -32,6 +32,10 @@ float VolumeAdjustment::toDBAdjustment(float factor) {
 	return static_cast< float >(std::log2(factor) * 6.0);
 }
 
+int VolumeAdjustment::toRoundedDBAdjustment(float factor) {
+	return static_cast< int >(std::roundf(VolumeAdjustment::toDBAdjustment(factor)));
+}
+
 VolumeAdjustment VolumeAdjustment::fromFactor(float factor) {
 	if (factor > 0) {
 		float dB = VolumeAdjustment::toDBAdjustment(factor);

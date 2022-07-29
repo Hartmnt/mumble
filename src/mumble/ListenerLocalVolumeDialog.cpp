@@ -21,7 +21,7 @@ ListenerLocalVolumeDialog::ListenerLocalVolumeDialog(ClientUser *user, Channel *
 	m_initialAdjustment = Global::get().channelListenerManager->getListenerLocalVolumeAdjustment(m_channel->iId);
 
 	// Calculate the db-shift from the set volume-factor
-	int dbShift = static_cast< int >(roundf(VolumeAdjustment::toDBAdjustment(m_initialAdjustment)));
+	int dbShift = VolumeAdjustment::toRoundedDBAdjustment(m_initialAdjustment);
 	qsUserLocalVolume->setValue(dbShift);
 
 	setWindowTitle(tr("Adjusting local volume for listening to %1").arg(channel->qsName));

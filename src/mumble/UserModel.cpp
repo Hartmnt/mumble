@@ -1980,7 +1980,7 @@ QString UserModel::createDisplayString(const ClientUser &user, bool isChannelLis
 	}
 
 	// Transform the adjustment into dB
-	int localVolumeDecibel = static_cast< int >(roundf(VolumeAdjustment::toDBAdjustment(volumeAdjustment)));
+	int localVolumeDecibel = VolumeAdjustment::toRoundedDBAdjustment(volumeAdjustment);
 
 	// Create a friend-tag
 	QString friendTag;

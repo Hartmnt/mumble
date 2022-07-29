@@ -245,8 +245,8 @@ void LogConfig::load(const Settings &r) {
 	qcbEnableTTS->setChecked(r.bTTS);
 
 #endif
-	loadSlider(qsNotificationVolume, static_cast< int >(roundf(VolumeAdjustment::toDBAdjustment(r.notificationVolume))));
-	loadSlider(qsCueVolume, static_cast< int >(roundf(VolumeAdjustment::toDBAdjustment(r.cueVolume))));
+	loadSlider(qsNotificationVolume, VolumeAdjustment::toRoundedDBAdjustment(r.notificationVolume));
+	loadSlider(qsCueVolume, VolumeAdjustment::toRoundedDBAdjustment(r.cueVolume));
 	qcbWhisperFriends->setChecked(r.bWhisperFriends);
 	qsbMessageLimitUsers->setValue(r.iMessageLimitUserThreshold);
 }
