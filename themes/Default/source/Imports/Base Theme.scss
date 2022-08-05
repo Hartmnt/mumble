@@ -809,10 +809,8 @@ QTreeView::indicator,
 QMenu::indicator
 {
 	padding-top:2px;
-	width:12px;
-	height:12px;
-	left:6px;
-	margin-right:8px;
+	left:$base-padding;
+	margin-right:$base-padding * 2;
 }
 
 QCheckBox::indicator:checked,

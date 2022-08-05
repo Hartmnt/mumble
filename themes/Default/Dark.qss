@@ -708,9 +708,7 @@ QTreeView::indicator {
 
 QMenu::indicator {
   padding-top: 2px;
-  width: 12px;
-  height: 12px;
-  left: 6px;
+  left: 4px;
   margin-right: 8px;
 }
 
