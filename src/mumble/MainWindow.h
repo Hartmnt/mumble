@@ -83,7 +83,7 @@ public:
 	QIcon qiIcon, qiIconMutePushToMute, qiIconMuteSelf, qiIconMuteServer, qiIconDeafSelf, qiIconDeafServer,
 		qiIconMuteSuppressed;
 	QIcon qiTalkingOn, qiTalkingWhisper, qiTalkingShout, qiTalkingOff;
-	std::unordered_map< unsigned int, NicknameDialogPtr > qmUserNicknameTracker;
+	std::unordered_map< unsigned int, qt_unique_ptr< UserLocalNicknameDialog > > qmUserNicknameTracker;
 
 	/// "Action" for when there are no actions available
 	QAction *qaEmpty;

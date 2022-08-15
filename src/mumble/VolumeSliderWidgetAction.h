@@ -19,7 +19,7 @@ public:
 	VolumeSliderWidgetAction(QObject *parent = nullptr);
 
 protected:
-	qt_unique_ptr<QSlider> m_volumeSlider;
+	qt_unique_ptr< QSlider > m_volumeSlider;
 
 	void updateSliderValue(float value);
 	void displayTooltip(int value);

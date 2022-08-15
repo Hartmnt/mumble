@@ -96,8 +96,7 @@ OpenURLEvent::OpenURLEvent(QUrl u) : QEvent(static_cast< QEvent::Type >(OU_QEVEN
 }
 
 MainWindow::MainWindow(QWidget *p)
-	: QMainWindow(p),
-	  m_localVolumeLabel(createQtUniquePtr(new MenuLabel(tr("Local Volume Adjustment:"), this))),
+	: QMainWindow(p), m_localVolumeLabel(createQtUniquePtr(new MenuLabel(tr("Local Volume Adjustment:"), this))),
 	  m_userLocalVolumeSlider(createQtUniquePtr(new UserLocalVolumeSlider(this))),
 	  m_listenerLocalVolumeSlider(createQtUniquePtr(new ListenerLocalVolumeSlider(this))) {
 	SvgIcon::addSvgPixmapsToIcon(qiIconMuteSelf, QLatin1String("skin:muted_self.svg"));

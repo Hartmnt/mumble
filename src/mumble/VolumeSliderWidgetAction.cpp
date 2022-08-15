@@ -33,6 +33,8 @@ void VolumeSliderWidgetAction::updateSliderValue(float value) {
 }
 
 void VolumeSliderWidgetAction::updateTooltip(int value) {
+	// ToolTip on hover
+
 	QString tooltipText;
 	if (value > 0) {
 		tooltipText = QString("%1: +%2 dB");
@@ -44,6 +46,8 @@ void VolumeSliderWidgetAction::updateTooltip(int value) {
 }
 
 void VolumeSliderWidgetAction::displayTooltip(int value) {
+	// ToolTip on drag
+
 	QString tooltipText;
 	if (value > 0) {
 		tooltipText = QString("+%1 dB");
