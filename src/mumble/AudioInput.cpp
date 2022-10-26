@@ -285,6 +285,8 @@ AudioInput::AudioInput() : opusBuffer(Global::get().s.iFramesPerPacket * (SAMPLE
 		setMaxBandwidth(Global::get().iMaxBandwidth);
 	}
 
+	m_activeAudioCue = nullptr;
+
 	bRunning = true;
 
 	connect(this, SIGNAL(doDeaf()), Global::get().mw->qaAudioDeaf, SLOT(trigger()), Qt::QueuedConnection);
@@ -1024,10 +1026,16 @@ void AudioInput::encodeAudioFrame(AudioChunk chunk) {
 
 		if (ao) {
 			if (Global::get().s.bTxAudioCue) {
+				// Cancel acative cue, if there is any
+				if (m_activeAudioCue && bIsSpeech != bPreviousVoice) {
+					ao->sampleStopped(m_activeAudioCue);
+					m_activeAudioCue = nullptr;
+				}
+
 				if (bIsSpeech && !bPreviousVoice) {
-					ao->playSample(Global::get().s.qsTxAudioCueOn, Global::get().s.cueVolume);
+					m_activeAudioCue = ao->playSample(Global::get().s.qsTxAudioCueOn, Global::get().s.cueVolume);
 				} else if (!bIsSpeech && bPreviousVoice) {
-					ao->playSample(Global::get().s.qsTxAudioCueOff, Global::get().s.cueVolume);
+					m_activeAudioCue = ao->playSample(Global::get().s.qsTxAudioCueOff, Global::get().s.cueVolume);
 				}
 			}
 

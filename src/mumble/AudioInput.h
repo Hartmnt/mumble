@@ -24,6 +24,7 @@
 #include <speex/speex_resampler.h>
 
 #include "Audio.h"
+#include "AudioOutputSample.h"
 #include "EchoCancelOption.h"
 #include "MumbleProtocol.h"
 #include "Settings.h"
@@ -198,6 +199,7 @@ private:
 	int encodeOpusFrame(short *source, int size, EncodingOutputBuffer &buffer);
 
 	QElapsedTimer qetLastMuteCue;
+	AudioOutputSample *m_activeAudioCue;
 
 protected:
 	Mumble::Protocol::AudioCodec m_codec;
