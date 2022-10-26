@@ -77,6 +77,11 @@ bool AudioOutputRegistrar::canExclusive() const {
 	return false;
 }
 
+AudioOutput::AudioOutput() {
+	QObject::connect(this, &AudioOutput::userRemoved, this, &AudioOutput::removeUser);
+	QObject::connect(this, &AudioOutput::sampleStopped, this, &AudioOutput::removeSample);
+}
+
 AudioOutput::~AudioOutput() {
 	bRunning = false;
 	wait();
@@ -177,10 +182,6 @@ void AudioOutput::addFrameToBuffer(ClientUser *sender, const Mumble::Protocol::A
 	qrwlOutputs.unlock();
 }
 
-void AudioOutput::removeBuffer(const ClientUser *user) {
-	removeBuffer(qmOutputs.value(user));
-}
-
 void AudioOutput::removeBuffer(AudioOutputUser *aop) {
 	QWriteLocker locker(&qrwlOutputs);
 	QMultiHash< const ClientUser *, AudioOutputUser * >::iterator i;
@@ -191,6 +192,14 @@ void AudioOutput::removeBuffer(AudioOutputUser *aop) {
 			break;
 		}
 	}
+}
+
+void AudioOutput::removeUser(const ClientUser *user) {
+	removeBuffer(qmOutputs.value(user));
+}
+
+void AudioOutput::removeSample(AudioOutputSample *sample) {
+	removeBuffer(static_cast< AudioOutputUser * >(sample));
 }
 
 AudioOutputSample *AudioOutput::playSample(const QString &filename, float volume, bool loop) {

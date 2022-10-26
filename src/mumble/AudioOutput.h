@@ -16,12 +16,6 @@
 #	include "ManualPlugin.h"
 #endif
 
-// AudioOutput depends on User being valid. This means it's important
-// to removeBuffer from here BEFORE MainWindow gets any UserLeft
-// messages. Any descendant user should feel free to remove unused
-// AudioOutputUser objects; it's better to recreate them than
-// having them use resources while unused.
-
 #ifndef SPEAKER_FRONT_LEFT
 #	define SPEAKER_FRONT_LEFT 0x1
 #	define SPEAKER_FRONT_RIGHT 0x2
@@ -85,6 +79,11 @@ private:
 	bool *bSpeakerPositional = nullptr;
 	/// Used when panning stereo stream w.r.t. each speaker.
 	float *fStereoPanningFactor = nullptr;
+	void removeBuffer(AudioOutputUser *);
+
+private slots:
+	void removeUser(const ClientUser *);
+	void removeSample(AudioOutputSample *);
 
 protected:
 	enum { SampleShort, SampleFloat } eSampleFormat = SampleFloat;
@@ -101,7 +100,6 @@ protected:
 	QHash< unsigned int, Position2D > positions;
 #endif
 
-	virtual void removeBuffer(AudioOutputUser *);
 	void initializeMixer(const unsigned int *chanmasks, bool forceheadphone = false);
 	bool mix(void *output, unsigned int frameCount);
 
@@ -112,7 +110,7 @@ public:
 	///
 	/// This constructor is only ever called by Audio::startOutput(), and is guaranteed
 	/// to be called on the application's main thread.
-	AudioOutput(){};
+	AudioOutput();
 
 	/// Destroy an AudioOutput.
 	///
@@ -121,7 +119,6 @@ public:
 	~AudioOutput() Q_DECL_OVERRIDE;
 
 	void addFrameToBuffer(ClientUser *sender, const Mumble::Protocol::AudioData &audioData);
-	void removeBuffer(const ClientUser *);
 	AudioOutputSample *playSample(const QString &filename, float volume, bool loop = false);
 	void run() Q_DECL_OVERRIDE = 0;
 	virtual bool isAlive() const;
@@ -150,6 +147,9 @@ signals:
 	/// @param modifiedAudio Pointer to bool if audio has been modified or not and should be played
 	void audioOutputAboutToPlay(float *outputPCM, unsigned int sampleCount, unsigned int channelCount,
 								unsigned int sampleRate, bool *modifiedAudio);
+
+	void userRemoved(const ClientUser *);
+	void sampleStopped(AudioOutputSample *);
 };
 
 #endif
