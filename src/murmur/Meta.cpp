@@ -165,14 +165,14 @@ void MetaParams::read(QString fname) {
 		QStringList datapaths;
 
 #if defined(Q_OS_WIN)
-		datapaths << QStandardPaths::writableLocation(QStandardPaths::DataLocation);
+		datapaths << QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
 
 		QDir appdir = QDir(QDir::fromNativeSeparators(EnvUtils::getenv(QLatin1String("APPDATA"))));
 		datapaths << appdir.absolutePath() + QLatin1String("/Mumble");
 #else
 		datapaths << QDir::homePath() + QLatin1String("/.murmurd");
 		datapaths << QDir::homePath() + QLatin1String("/.mumble-server");
-		datapaths << QDir::homePath() + QLatin1String("/.config/Mumble");
+		datapaths << QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation);
 #endif
 
 #if defined(Q_OS_MAC)

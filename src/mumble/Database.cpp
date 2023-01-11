@@ -17,6 +17,7 @@
 #include <QtSql/QSqlError>
 #include <QtSql/QSqlQuery>
 #include <QtWidgets/QMessageBox>
+#include <QDebug>
 
 static void logSQLError(const QSqlQuery &query) {
 	const QSqlError error(query.lastQuery());
@@ -45,10 +46,10 @@ bool Database::findOrCreateDatabase() {
 	QStringList datapaths;
 
 	datapaths << Global::get().qdBasePath.absolutePath();
-	datapaths << QStandardPaths::writableLocation(QStandardPaths::DataLocation);
-#if defined(Q_OS_UNIX) && !defined(Q_OS_MAC)
-	datapaths << QDir::homePath() + QLatin1String("/.config/Mumble");
-#endif
+	datapaths << QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+	datapaths << QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation);
+	qDebug()  << QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+	qDebug()  << QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation);
 	datapaths << QDir::homePath();
 	datapaths << QDir::currentPath();
 	datapaths << qApp->applicationDirPath();
