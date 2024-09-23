@@ -49,7 +49,7 @@ endfunction()
 # It also handles multiple package names and searches them with pkg-config if they are not found.
 macro(find_pkg ARG_ALIASES)
 	# We specify "CONFIG", "MODULE" and "NO_MODULE" so that they are not considered unparsed arguments (passed to find_package()).
-	cmake_parse_arguments(FIND_PACKAGE "ARG_ALIASES;CONFIG;MODULE;NO_DEFAULT_PATH;NO_MODULE;REQUIRED;QUIET" "" "COMPONENTS;OPTIONAL_COMPONENTS;PATHS" ${ARGN})
+	cmake_parse_arguments(FIND_PACKAGE "ARG_ALIASES;CONFIG;MODULE;NO_DEFAULT_PATH;NO_MODULE;REQUIRED;QUIET;SYSTEM" "" "COMPONENTS;OPTIONAL_COMPONENTS;PATHS" ${ARGN})
 
 	if(FIND_PACKAGE_PATHS)
 		list(APPEND FIND_PACKAGE_ARGUMENTS "PATHS" ${FIND_PACKAGE_PATHS})

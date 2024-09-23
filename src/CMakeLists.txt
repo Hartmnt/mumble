@@ -23,6 +23,7 @@ find_pkg(Qt6
 		Network
 		Xml
 	REQUIRED
+	SYSTEM
 )
 
 find_pkg(OpenSSL
