@@ -1,4 +1,4 @@
-// Copyright 2007-2023 The Mumble Developers. All rights reserved.
+// Copyright The Mumble Developers. All rights reserved.
 // Use of this source code is governed by a BSD-style license
 // that can be found in the LICENSE file at the root of the
 // Mumble source tree or at <https://www.mumble.info/LICENSE>.
@@ -827,18 +827,26 @@ void ACLEditor::on_qcbACLInherit_clicked(bool) {
 
 void ACLEditor::on_qcbACLApplyHere_clicked(bool checked) {
 	ChanACL *as = currentACL();
-	if (!as || as->bInherited)
+	if (!as || as->bInherited) {
 		return;
+	}
 
 	as->bApplyHere = checked;
+	if (!checked && !qcbACLApplySubs->isChecked()) {
+		qcbACLApplySubs->setCheckState(Qt::Checked);
+	}
 }
 
 void ACLEditor::on_qcbACLApplySubs_clicked(bool checked) {
 	ChanACL *as = currentACL();
-	if (!as || as->bInherited)
+	if (!as || as->bInherited) {
 		return;
+	}
 
 	as->bApplySubs = checked;
+	if (!checked && !qcbACLApplyHere->isChecked()) {
+		qcbACLApplyHere->setCheckState(Qt::Checked);
+	}
 }
 
 void ACLEditor::qcbACLGroup_focusLost() {
