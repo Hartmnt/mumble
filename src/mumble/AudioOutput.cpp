@@ -257,8 +257,29 @@ void AudioOutput::removeUser(const ClientUser *user) {
 	removeBuffer(qmOutputs.value(user));
 }
 
+#include <QDebug>
+
 void AudioOutput::removeToken(AudioOutputToken &token) {
-	removeBuffer(token.m_buffer);
+	bool stillPlaying;
+	qDebug() << "Before Lock";
+	{
+		// A AudioOutputToken user can not possibly know, if
+		// the pointer they are holding is still valid.
+		// We are protected against invalid memory access and
+		// double-frees. But we might run into issues, if the
+		// system memory allocator uses the same address in quick
+		// succession. See #6613
+		qDebug() << "Locking...";
+		QReadLocker locker(&qrwlOutputs);
+		stillPlaying = qmOutputs.contains(nullptr, token.m_buffer);
+		qDebug() << "Unlocking...";
+	}
+
+	qDebug() << "After Lock. Playing: " << stillPlaying;
+
+	if (stillPlaying) {
+		removeBuffer(token.m_buffer);
+	}
 	token = {};
 }
 
