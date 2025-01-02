@@ -35,6 +35,7 @@
 
 class QSettings;
 struct MigratedPath;
+struct Settings;
 
 // Global helper classes to spread variables around across threads
 // especially helpful to initialize things like the stored
@@ -182,6 +183,13 @@ struct OverlaySettings {
 
 	friend bool operator==(const OverlaySettings &lhs, const OverlaySettings &rhs);
 	friend bool operator!=(const OverlaySettings &lhs, const OverlaySettings &rhs);
+};
+
+struct Profiles {
+	static const QString s_default_profile_name;
+
+	QString activeProfileName             = s_default_profile_name;
+	QMap< QString, Settings > allProfiles = {};
 };
 
 struct Settings {
@@ -557,6 +565,8 @@ struct Settings {
 
 	/// A flag used in order to determine whether or not to offer loading the setting's backup file instead
 	bool mumbleQuitNormally = false;
+
+	Profiles profiles;
 
 	bool doEcho() const;
 	bool doPositionalAudio() const;

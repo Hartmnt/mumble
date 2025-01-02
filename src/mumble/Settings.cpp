@@ -151,7 +151,14 @@ void Settings::save(const QString &path) const {
 		throw std::runtime_error("Expected settings file to have \".json\" extension");
 	}
 
-	nlohmann::json settingsJSON = *this;
+	nlohmann::json settingsJSON      = profiles;
+	nlohmann::json &profilesJSON     = settingsJSON.at(SettingsKeys::PROFILES);
+	nlohmann::json activeProfileJSON = *this;
+
+	qInfo("Saving settings profile '%s'", qUtf8Printable(profiles.activeProfileName));
+
+	profilesJSON.erase(profiles.activeProfileName.toStdString());
+	profilesJSON.push_back({ profiles.activeProfileName, activeProfileJSON });
 
 	QFile tmpFile(QString::fromLatin1("%1/mumble_settings.json.tmp")
 					  .arg(QStandardPaths::writableLocation(QStandardPaths::TempLocation)));
@@ -226,11 +233,36 @@ void Settings::load(const QString &path) {
 
 	std::ifstream stream(Mumble::QtUtils::qstring_to_path(path));
 
-	nlohmann::json settingsJSON;
 	try {
-		stream >> settingsJSON;
+		nlohmann::json profilesJSON;
+		stream >> profilesJSON;
 
-		settingsJSON.get_to(*this);
+		if (profilesJSON.contains(SettingsKeys::ACTIVE_PROFILE)) {
+			Profiles loadedProfiles;
+			profilesJSON.get_to(loadedProfiles);
+
+			if (loadedProfiles.allProfiles.contains(loadedProfiles.activeProfileName)) {
+				qInfo("Loading settings profile '%s'", qUtf8Printable(loadedProfiles.activeProfileName));
+				*this = loadedProfiles.allProfiles[loadedProfiles.activeProfileName];
+			} else if (loadedProfiles.allProfiles.contains(Profiles::s_default_profile_name)) {
+				qWarning("Failed to load settings profile '%s'. Falling back to 'default'...",
+						 qUtf8Printable(loadedProfiles.activeProfileName));
+				loadedProfiles.activeProfileName = Profiles::s_default_profile_name;
+				*this                            = loadedProfiles.allProfiles[Profiles::s_default_profile_name];
+			} else {
+				qWarning("Failed to load profile 'default'. Trying to load raw settings file...");
+				profilesJSON.get_to(*this);
+			}
+
+			// Assign the profile information loaded from file to this settings object for later use when saving.
+			profiles = loadedProfiles;
+		} else {
+			// The file does not contain the key "SettingsKeys::ACTIVE_PROFILE"
+			// We assume the JSON file does not contain any profiles, because it is
+			// old. We load the file raw instead and convert it to the s_default_profile_name profile.
+			qWarning("Migrating settings file to 'default' profile");
+			profilesJSON.get_to(*this);
+		}
 
 		if (!mumbleQuitNormally) {
 			// These settings were saved without Mumble quitting normally afterwards. In order to prevent loading
@@ -400,6 +432,8 @@ bool operator<(const ChannelTarget &lhs, const ChannelTarget &rhs) {
 std::size_t qHash(const ChannelTarget &target) {
 	return qHash(target.channelID);
 }
+
+const QString Profiles::s_default_profile_name = QLatin1String("default");
 
 const QString Settings::cqsDefaultPushClickOn  = QLatin1String(":/on.ogg");
 const QString Settings::cqsDefaultPushClickOff = QLatin1String(":/off.ogg");
@@ -1222,6 +1256,7 @@ void Settings::verifySettingsKeys() const {
 #define INTERMEDIATE_OPERATION categoryNames.push_back(currentCategoryName);
 	PROCESS_ALL_SETTINGS_WITH_INTERMEDIATE_OPERATION
 	PROCESS_ALL_OVERLAY_SETTINGS_WITH_INTERMEDIATE_OPERATION
+	PROCESS_ALL_PROFILE_SETTINGS_WITH_INTERMEDIATE_OPERATION
 
 	// Assert that all entries in categoryNames are unique
 	std::sort(categoryNames.begin(), categoryNames.end());
@@ -1241,6 +1276,7 @@ void Settings::verifySettingsKeys() const {
 	keyNames.clear();
 	PROCESS_ALL_SETTINGS_WITH_INTERMEDIATE_OPERATION
 	PROCESS_ALL_OVERLAY_SETTINGS_WITH_INTERMEDIATE_OPERATION
+	PROCESS_ALL_PROFILE_SETTINGS_WITH_INTERMEDIATE_OPERATION
 #undef PROCESS
 #undef INTERMEDIATE_OPERATION
 
@@ -1253,6 +1289,11 @@ void Settings::verifySettingsKeys() const {
 	variableNames.clear();
 
 	PROCESS_ALL_OVERLAY_SETTINGS
+	std::sort(variableNames.begin(), variableNames.end());
+	assert(std::unique(variableNames.begin(), variableNames.end()) == variableNames.end());
+	variableNames.clear();
+
+	PROCESS_ALL_PROFILE_SETTINGS
 	std::sort(variableNames.begin(), variableNames.end());
 	assert(std::unique(variableNames.begin(), variableNames.end()) == variableNames.end());
 #undef PROCESS
