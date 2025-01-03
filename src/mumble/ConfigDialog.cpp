@@ -84,6 +84,19 @@ ConfigDialog::ConfigDialog(QWidget *p) : QDialog(p) {
 			restoreGeometry(Global::get().s.qbaConfigGeometry);
 	}
 
+	qcbProfiles->addItem(Profiles::s_default_profile_name);
+
+	QStringList profiles = Global::get().s.profiles.allProfiles.keys();
+	profiles.sort();
+	for (const QString &profile : profiles) {
+		if (profile == Profiles::s_default_profile_name) {
+			continue;
+		}
+		qcbProfiles->addItem(profile);
+	}
+
+	qcbProfiles->setCurrentIndex(qcbProfiles->findText(Global::get().s.profiles.activeProfileName));
+
 	updateTabOrder();
 	qlwIcons->setFocus();
 }
@@ -205,6 +218,35 @@ void ConfigDialog::on_qlwIcons_currentItemChanged(QListWidgetItem *current, QLis
 	}
 }
 
+void ConfigDialog::on_qcbProfiles_currentIndexChanged(int) {
+	QString selectedProfile = qcbProfiles->currentText();
+	bool isDefault          = selectedProfile == Profiles::s_default_profile_name;
+	qpbProfileRename->setEnabled(!isDefault);
+	qpbProfileDelete->setEnabled(!isDefault);
+
+	Profiles profilesCopy = s.profiles;
+
+	if (!profilesCopy.allProfiles.contains(selectedProfile)) {
+		return;
+	}
+
+	s                            = profilesCopy.allProfiles[selectedProfile];
+	s.profiles                   = profilesCopy;
+	s.profiles.activeProfileName = selectedProfile;
+	for (ConfigWidget *cw : s_existingWidgets.values()) {
+		cw->load(s);
+	}
+}
+
+void ConfigDialog::on_qpbProfileAdd_clicked() {
+}
+
+void ConfigDialog::on_qpbProfileRename_clicked() {
+}
+
+void ConfigDialog::on_qpbProfileDelete_clicked() {
+}
+
 void ConfigDialog::updateTabOrder() {
 	QPushButton *okButton         = dialogButtonBox->button(QDialogButtonBox::Ok);
 	QPushButton *cancelButton     = dialogButtonBox->button(QDialogButtonBox::Cancel);
@@ -230,13 +272,17 @@ void ConfigDialog::updateTabOrder() {
 	setTabOrder(cancelButton, okButton);
 	setTabOrder(okButton, qlwIcons);
 	setTabOrder(qlwIcons, contentFocusWidget);
+	setTabOrder(contentFocusWidget, qcbProfiles);
+	setTabOrder(qcbProfiles, qpbProfileAdd);
+	setTabOrder(qpbProfileAdd, qpbProfileRename);
+	setTabOrder(qpbProfileRename, qpbProfileDelete);
 	if (resetButton && restoreButton && restoreAllButton) {
-		setTabOrder(contentFocusWidget, resetButton);
+		setTabOrder(qpbProfileDelete, resetButton);
 		setTabOrder(resetButton, restoreButton);
 		setTabOrder(restoreButton, restoreAllButton);
 		setTabOrder(restoreAllButton, applyButton);
 	} else {
-		setTabOrder(contentFocusWidget, applyButton);
+		setTabOrder(qpbProfileDelete, applyButton);
 	}
 	setTabOrder(applyButton, cancelButton);
 }
