@@ -2285,6 +2285,20 @@ void Server::msgUserStats(ServerUser *uSource, MumbleProto::UserStats &msg) {
 		mpusss->set_late(pDstServerUser->csCrypt->m_statsRemote.late);
 		mpusss->set_lost(pDstServerUser->csCrypt->m_statsRemote.lost);
 		mpusss->set_resync(pDstServerUser->csCrypt->m_statsRemote.resync);
+
+		mpusss = msg.mutable_rolling_from_client();
+		mpusss->set_good(pDstServerUser->csCrypt->m_statsLocalRolling.good);
+		mpusss->set_late(pDstServerUser->csCrypt->m_statsLocalRolling.late);
+		mpusss->set_lost(pDstServerUser->csCrypt->m_statsLocalRolling.lost);
+		mpusss->set_resync(pDstServerUser->csCrypt->m_statsLocalRolling.resync);
+
+		mpusss = msg.mutable_rolling_from_server();
+		mpusss->set_good(pDstServerUser->csCrypt->m_statsRemoteRolling.good);
+		mpusss->set_late(pDstServerUser->csCrypt->m_statsRemoteRolling.late);
+		mpusss->set_lost(pDstServerUser->csCrypt->m_statsRemoteRolling.lost);
+		mpusss->set_resync(pDstServerUser->csCrypt->m_statsRemoteRolling.resync);
+
+		msg.set_rolling_time(pDstServerUser->csCrypt->m_rollingWindow.count());
 	}
 
 	msg.set_udp_packets(pDstServerUser->uiUDPPackets);
