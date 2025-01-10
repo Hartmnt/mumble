@@ -43,6 +43,7 @@ public:
 	PacketStats m_statsLocalRolling  = {};
 	PacketStats m_statsRemoteRolling = {};
 
+	bool m_rollingStatsEnabled = false;
 	/// This is the packet statistics sliding time window size in seconds
 	std::chrono::duration< uint32_t, std::ratio< 1 > > m_rollingWindow = std::chrono::seconds(60 * 5);
 

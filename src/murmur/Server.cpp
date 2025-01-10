@@ -44,6 +44,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <chrono>
 #include <vector>
 
 #ifdef Q_OS_WIN
@@ -346,6 +347,7 @@ void Server::readParams() {
 	bBonjour                           = Meta::mp.bBonjour;
 	bAllowPing                         = Meta::mp.bAllowPing;
 	allowRecording                     = Meta::mp.allowRecording;
+	rollingStatsSeconds                = Meta::mp.rollingStatsSeconds;
 	bCertRequired                      = Meta::mp.bCertRequired;
 	bForceExternalAuth                 = Meta::mp.bForceExternalAuth;
 	qrUserName                         = Meta::mp.qrUserName;
@@ -445,6 +447,7 @@ void Server::readParams() {
 
 	iChannelNestingLimit = getConf("channelnestinglimit", iChannelNestingLimit).toInt();
 	iChannelCountLimit   = getConf("channelcountlimit", iChannelCountLimit).toInt();
+	rollingStatsSeconds  = getConf("rollingStatsSeconds", rollingStatsSeconds).toUInt();
 
 	qrUserName =
 		decltype(qrUserName)(QRegularExpression::anchoredPattern(getConf("username", qrUserName.pattern()).toString()));
@@ -577,6 +580,8 @@ void Server::setLiveConf(const QString &key, const QString &value) {
 		bAllowPing = !v.isNull() ? QVariant(v).toBool() : Meta::mp.bAllowPing;
 	else if (key == "allowrecording")
 		allowRecording = !v.isNull() ? QVariant(v).toBool() : Meta::mp.allowRecording;
+	else if (key == "rollingStatsSeconds")
+		rollingStatsSeconds = i ? static_cast< uint32_t >(i) : Meta::mp.rollingStatsSeconds;
 	else if (key == "username")
 		qrUserName = !v.isNull() ? QRegularExpression(v) : Meta::mp.qrUserName;
 	else if (key == "channelname")
@@ -1436,6 +1441,14 @@ void Server::newClient() {
 		ServerUser *u = new ServerUser(this, sock);
 		u->haAddress  = ha;
 		HostAddress(sock->localAddress()).toSockaddr(&u->saiTcpLocalAddress);
+
+		if (rollingStatsSeconds > 0) {
+			// Note: We use a minimum rolling window of 10 seconds.
+			// Anything lower would be pretty meaningless anyway and
+			// probably increase server load significantly.
+			u->csCrypt->m_rollingStatsEnabled = true;
+			u->csCrypt->m_rollingWindow       = std::chrono::seconds(std::max(10U, rollingStatsSeconds));
+		}
 
 		connect(u, &ServerUser::connectionClosed, this, &Server::connectionClosed);
 		connect(u, SIGNAL(message(Mumble::Protocol::TCPMessageType, const QByteArray &)), this,
