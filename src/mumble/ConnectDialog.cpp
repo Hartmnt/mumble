@@ -335,6 +335,10 @@ ServerItem::ServerItem(const ServerItem *si) {
 	uiSent      = si->uiSent;
 	dPing       = si->dPing;
 	*asQuantile = *si->asQuantile;
+
+	if (bCA) {
+		setProperty("class", "certifiedServer");
+	}
 }
 
 ServerItem::~ServerItem() {
@@ -558,12 +562,6 @@ QVariant ServerItem::data(int column, int role) const {
 			}
 			qs += QLatin1String("</table>");
 			return qs;
-		} else if (role == Qt::BackgroundRole) {
-			if (bCA) {
-				QColor qc(Qt::green);
-				qc.setAlpha(32);
-				return qc;
-			}
 		} else if (role == Qt::AccessibleTextRole) {
 			return QString("%1 %2").arg(ConnectDialog::tr("Server")).arg(qsName);
 		}

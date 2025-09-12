@@ -436,6 +436,11 @@ QTreeView::item:selected:active:only-one
 	border-right:$item-selected-active-border;
 }
 
+QTreeView::item.certifiedServer
+{
+    background:$item-certifiedServer;
+}
+
 QTreeView::branch
 {
 	background-color:$sub-bg;

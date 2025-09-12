@@ -386,6 +386,10 @@ QTreeView::item:selected:active:only-one {
   border-right: 1px solid #3e4f5e;
 }
 
+QTreeView::item.certifiedServer {
+  background: rgba(255, 0, 0, 0.5);
+}
+
 QTreeView::branch {
   background-color: #191919;
   border-image: none;
