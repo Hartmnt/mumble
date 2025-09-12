@@ -9,6 +9,8 @@
 #include <QXmlStreamReader>
 #include <QXmlStreamWriter>
 
+#include <QDebug>
+
 void XMLTools::recurseParse(QXmlStreamReader &reader, QXmlStreamWriter &writer, int &paragraphs,
 							const QMap< QString, QString > &opstyle, const int close, bool ignore) {
 	while (!reader.atEnd()) {
@@ -106,8 +108,11 @@ void XMLTools::recurseParse(QXmlStreamReader &reader, QXmlStreamWriter &writer, 
 					// Set pstyle to include implicit blue underline.
 					rclose = 1;
 					writer.writeCurrentToken(reader);
+					qDebug() << "style " << style;
+					qDebug() << "pstyle before " << pstyle;
 					pstyle.insert(QLatin1String("text-decoration"), QLatin1String("underline"));
 					pstyle.insert(QLatin1String("color"), QLatin1String("#0000ff"));
+					qDebug() << "pstyle after " << pstyle;
 				} else if (!ignore) {
 					rclose = 1;
 					writer.writeCurrentToken(reader);
