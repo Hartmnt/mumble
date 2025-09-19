@@ -708,7 +708,9 @@ void Server::msgBanList(ServerUser *uSource, MumbleProto::BanList &msg) {
 			} else {
 				b.qdtStart = QDateTime::currentDateTime().toUTC();
 			}
+
 			b.iDuration = be.duration();
+
 			if (b.isValid()) {
 				m_bans.push_back(std::move(b));
 			}
@@ -1253,6 +1255,9 @@ void Server::msgUserRemove(ServerUser *uSource, MumbleProto::UserRemove &msg) {
 		if (banIP) {
 			b.haAddress = pDstServerUser->haAddress;
 			b.iMask     = 128;
+		} else {
+			b.haAddress = HostAddress();
+			b.iMask     = 0;
 		}
 		if (banCertificate) {
 			b.qsHash = pDstServerUser->qsHash;
