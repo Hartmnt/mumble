@@ -34,6 +34,7 @@
 #include "Mumble.pb.h"
 #include "MumbleProtocol.h"
 #include "ServerAddress.h"
+#include "ServerResolver.h"
 #include "Timer.h"
 
 #include <memory>
@@ -53,6 +54,19 @@ public:
 	ServerHandlerMessageEvent(const QByteArray &msg, Mumble::Protocol::TCPMessageType type, bool flush = false);
 };
 
+enum class ServerHandlerState {
+	Idle,
+	DNSQuery,
+	DNSResolved,
+	DNSFailed,
+	AwaitingConnection,
+	TLSHandshake,
+	Established,
+	Disconnecting,
+	ConnectionOver,
+	Aborted
+};
+
 using ConnectionPtr = std::shared_ptr< Connection >;
 
 class ServerHandler : public QThread {
@@ -64,6 +78,11 @@ private:
 
 	static QMutex nextConnectionIDMutex;
 	static int nextConnectionID;
+
+	bool isAborted();
+	void changeState(ServerHandlerState state);
+
+	ServerHandlerState m_state = ServerHandlerState::Idle;
 
 protected:
 	QString qsHostName;
@@ -194,6 +213,7 @@ signals:
 	void disconnected(QAbstractSocket::SocketError, QString reason);
 	void connected();
 	void pingRequested();
+	void abortRequested();
 protected slots:
 	void message(Mumble::Protocol::TCPMessageType type, const QByteArray &);
 	void serverConnectionConnected();
@@ -205,6 +225,7 @@ protected slots:
 	void hostnameResolved();
 private slots:
 	void sendPingInternal();
+	void abortConnection();
 public slots:
 	void sendPing();
 };

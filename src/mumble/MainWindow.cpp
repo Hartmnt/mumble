@@ -1223,17 +1223,22 @@ void MainWindow::on_qaMoveBack_triggered() {
 }
 
 static void recreateServerHandler() {
+	qInfo() << "MainWindow recreateServerHandler";
 	ServerHandlerPtr sh = Global::get().sh;
 	if (sh && sh->isRunning()) {
 		Global::get().mw->on_qaServerDisconnect_triggered();
 		sh->disconnect();
+		qInfo() << "MainWindow before wait";
 		sh->wait();
+		qInfo() << "MainWindow after wait";
 		QCoreApplication::instance()->processEvents();
 	}
 
 	Global::get().sh.reset();
-	while (sh && sh.use_count() > 1)
+	while (sh && sh.use_count() > 1) {
+		qInfo() << "MainWindow recreateServerHandler yield loop";
 		QThread::yieldCurrentThread();
+	}
 	sh.reset();
 
 	sh = ServerHandlerPtr(new ServerHandler());
@@ -1257,6 +1262,8 @@ static void recreateServerHandler() {
 	// In order for that to work it is ESSENTIAL to use a DIRECT CONNECTION!
 	Global::get().pluginManager->connect(sh.get(), &ServerHandler::aboutToDisconnect, Global::get().pluginManager,
 										 &PluginManager::on_serverDisconnected, Qt::DirectConnection);
+
+	qInfo() << "MainWindow recreateServerHandler done";
 }
 
 void MainWindow::openUrl(const QUrl &url) {
@@ -3506,6 +3513,7 @@ void MainWindow::viewCertificate(bool) {
  * connection to the server is established but before the server Sync is complete.
  */
 void MainWindow::serverConnected() {
+	qInfo() << "MainWindow serverConnected";
 	m_reconnectSoundBlocker.reset();
 
 	Global::get().uiSession    = 0;
@@ -3558,9 +3566,11 @@ void MainWindow::serverConnected() {
 #endif
 
 	qdwMinimalViewNote->hide();
+	qInfo() << "MainWindow serverConnected done";
 }
 
 void MainWindow::serverDisconnected(QAbstractSocket::SocketError err, QString reason) {
+	qInfo() << "MainWindow serverDisconnected";
 	// clear ChannelListener
 	Global::get().channelListenerManager->clear();
 
@@ -3779,9 +3789,11 @@ void MainWindow::serverDisconnected(QAbstractSocket::SocketError err, QString re
 	}
 
 	emit disconnectedFromServer();
+	qInfo() << "MainWindow serverDisconnected done";
 }
 
 void MainWindow::resolverError(QAbstractSocket::SocketError, QString reason) {
+	qInfo() << "MainWindow resolveError";
 	if (!reason.isEmpty()) {
 		Global::get().l->log(Log::ServerDisconnected, tr("Server connection failed: %1.").arg(reason.toHtmlEscaped()));
 	} else {
@@ -3794,6 +3806,7 @@ void MainWindow::resolverError(QAbstractSocket::SocketError, QString reason) {
 			qtReconnect->start();
 		}
 	}
+	qInfo() << "MainWindow resolveError done";
 }
 
 void MainWindow::showRaiseWindow() {
@@ -4023,6 +4036,7 @@ void MainWindow::openServerConnectDialog(bool autoconnect) {
 		Global::get().l->log(
 			Log::Information,
 			tr("Connecting to server %1.").arg(Log::msgColor(cd->qsServer.toHtmlEscaped(), Log::Server)));
+		qInfo() << "MainWindow openServerConnect dialog accepted (thread starts)";
 		Global::get().sh->setConnectionInfo(cd->qsServer, cd->usPort, cd->qsUsername, cd->qsPassword);
 		Global::get().sh->start(QThread::TimeCriticalPriority);
 	}
@@ -4033,6 +4047,7 @@ void MainWindow::openServerConnectDialog(bool autoconnect) {
 }
 
 void MainWindow::disconnectFromServer() {
+	qInfo() << "MainWindow disconnectFromServer";
 	if (qtReconnect->isActive()) {
 		qtReconnect->stop();
 		qaServerDisconnect->setEnabled(false);
@@ -4041,8 +4056,10 @@ void MainWindow::disconnectFromServer() {
 	m_reconnectSoundBlocker.reset();
 
 	if (Global::get().sh && Global::get().sh->isRunning()) {
+		qInfo() << "MainWindow disconnectFromServer send sh disconnect call";
 		Global::get().sh->disconnect();
 	}
+	qInfo() << "MainWindow disconnectFromServer done";
 }
 
 void MainWindow::addServerAsFavorite() {

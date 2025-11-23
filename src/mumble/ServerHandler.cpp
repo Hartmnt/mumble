@@ -26,7 +26,6 @@
 #include "ProtoUtils.h"
 #include "RichTextEditor.h"
 #include "SSL.h"
-#include "ServerResolver.h"
 #include "ServerResolverRecord.h"
 #include "User.h"
 #include "Utils.h"
@@ -110,6 +109,8 @@ static HANDLE loadQoS() {
 }
 #endif
 
+#include <QDebug>
+
 ServerHandler::ServerHandler() : database(new Database(QLatin1String("ServerHandler"))) {
 	cConnection.reset();
 	qusUdp                  = nullptr;
@@ -120,12 +121,16 @@ ServerHandler::ServerHandler() : database(new Database(QLatin1String("ServerHand
 	m_version               = Version::UNKNOWN;
 	iInFlightTCPPings       = 0;
 
+	qInfo() << "ServerHandler constructor";
+
 	// assign connection ID
 	{
 		QMutexLocker lock(&nextConnectionIDMutex);
 		nextConnectionID++;
 		connectionID = nextConnectionID;
 	}
+
+	qInfo() << "ServerHandler constructor id " << connectionID;
 
 	// Historically, the qWarning line below initialized OpenSSL for us.
 	// It used to have this comment:
@@ -166,17 +171,22 @@ ServerHandler::ServerHandler() : database(new Database(QLatin1String("ServerHand
 #endif
 
 	connect(this, SIGNAL(pingRequested()), this, SLOT(sendPingInternal()), Qt::QueuedConnection);
+	connect(this, &ServerHandler::abortRequested, this, &ServerHandler::abortConnection);
+	qInfo() << "ServerHandler constructor done";
 }
 
 ServerHandler::~ServerHandler() {
+	qInfo() << "ServerHandler deconstructor";
 	wait();
 	cConnection.reset();
+	qInfo() << "ServerHandler deconstructor wait and reset";
 #ifdef Q_OS_WIN
 	if (hQoS) {
 		QOSCloseHandle(hQoS);
 		Connection::setQoS(nullptr);
 	}
 #endif
+	qInfo() << "ServerHandler deconstructor done";
 }
 
 void ServerHandler::customEvent(QEvent *evt) {
@@ -185,6 +195,8 @@ void ServerHandler::customEvent(QEvent *evt) {
 
 	ServerHandlerMessageEvent *shme = static_cast< ServerHandlerMessageEvent * >(evt);
 
+	qWarning() << "customEvent receivedd";
+
 	ConnectionPtr connection(cConnection);
 	if (connection) {
 		if (shme->qbaMsg.size() > 0) {
@@ -192,9 +204,35 @@ void ServerHandler::customEvent(QEvent *evt) {
 			if (shme->bFlush)
 				connection->forceFlush();
 		} else {
+			qWarning() << "customEvent exit(0)";
 			exit(0);
 		}
+	} else {
+		qWarning() << "customEvent noConnection exit(0)";
+		exit(0);
 	}
+}
+
+void ServerHandler::changeState(ServerHandlerState state) {
+	if (m_state == ServerHandlerState::Aborted) {
+		return;
+	}
+
+	m_state = state;
+	qWarning() << static_cast< int >(m_state);
+
+	if (m_state == ServerHandlerState::Aborted) {
+		qWarning() << "Aborted sent exit(0)";
+		exit(0);
+	}
+}
+
+void ServerHandler::abortConnection() {
+	changeState(ServerHandlerState::Aborted);
+}
+
+bool ServerHandler::isAborted() {
+	return m_state == ServerHandlerState::Aborted;
 }
 
 int ServerHandler::getConnectionID() const {
@@ -211,6 +249,7 @@ void ServerHandler::setProtocolVersion(Version::full_t version) {
 
 void ServerHandler::udpReady() {
 	while (qusUdp->hasPendingDatagrams()) {
+		qInfo() << "ServerHandler udpReady loop";
 		char encrypted[Mumble::Protocol::MAX_UDP_PACKET_SIZE];
 		unsigned int buflen = static_cast< unsigned int >(qusUdp->pendingDatagramSize());
 
@@ -277,6 +316,7 @@ void ServerHandler::udpReady() {
 			}
 		}
 	}
+	qInfo() << "ServerHandler udpReady done";
 }
 
 void ServerHandler::handleVoicePacket(const Mumble::Protocol::AudioData &audioData) {
@@ -300,6 +340,7 @@ void ServerHandler::sendMessage(const unsigned char *data, int len, bool force) 
 	crypto.resize(static_cast< std::size_t >(len + 4));
 
 	QMutexLocker qml(&qmUdp);
+	qInfo() << "ServerHandler locked qmUdp sendMessage";
 
 	if (!qusUdp)
 		return;
@@ -360,52 +401,69 @@ void ServerHandler::setServerSynchronized(bool synchronized) {
 }
 
 void ServerHandler::hostnameResolved() {
-	ServerResolver *sr                    = qobject_cast< ServerResolver * >(QObject::sender());
-	QList< ServerResolverRecord > records = sr->records();
+	ServerResolver *sr = qobject_cast< ServerResolver * >(QObject::sender());
+	QTimer::singleShot(8000, this, [this, sr]() {
+		QList< ServerResolverRecord > records = sr->records();
 
-	// Exit the ServerHandler thread's event loop with an
-	// error code in case our hostname lookup failed.
-	if (records.isEmpty()) {
-		exit(-1);
-		return;
-	}
-
-	// Create the list of target host:port pairs
-	// that the ServerHandler should try to connect to.
-	QList< ServerAddress > ql;
-	QHash< ServerAddress, QString > qh;
-	for (ServerResolverRecord &record : records) {
-		for (const HostAddress &addr : record.addresses()) {
-			auto sa = ServerAddress(addr, record.port());
-			ql.append(sa);
-			qh[sa] = record.hostname();
+		// Exit the ServerHandler thread's event loop with an
+		// error code in case our hostname lookup failed.
+		if (records.isEmpty()) {
+			exit(-1);
+			return;
 		}
-	}
-	qlAddresses = ql;
-	qhHostnames = qh;
 
-	// Exit the event loop with 'success' status code,
-	// to continue connecting to the server.
-	exit(0);
+		// Create the list of target host:port pairs
+		// that the ServerHandler should try to connect to.
+		QList< ServerAddress > ql;
+		QHash< ServerAddress, QString > qh;
+		for (ServerResolverRecord &record : records) {
+			for (const HostAddress &addr : record.addresses()) {
+				auto sa = ServerAddress(addr, record.port());
+				ql.append(sa);
+				qh[sa] = record.hostname();
+			}
+		}
+		qlAddresses = ql;
+		qhHostnames = qh;
+
+		// Exit the event loop with 'success' status code,
+		// to continue connecting to the server.
+		qInfo() << "ServerHandler hostnameResolved exit(0)";
+		exit(0);
+	});
 }
 
 void ServerHandler::run() {
 	// Resolve the hostname...
+	qInfo() << "ServerHandler run()";
 	{
+		changeState(ServerHandlerState::DNSQuery);
 		ServerResolver sr;
-		QObject::connect(&sr, SIGNAL(resolved()), this, SLOT(hostnameResolved()));
+		QObject::connect(&sr, &ServerResolver::resolved, this, &ServerHandler::hostnameResolved);
+		qWarning("ServerHandler: run() before resolve");
 		sr.resolve(qsHostName, usPort);
+		qWarning("ServerHandler: run() after resolve()");
+		qWarning("ServerHandler: run() before exec");
 		int ret = exec();
+		qWarning("ServerHandler: run after exec()");
 		if (ret < 0) {
 			qWarning("ServerHandler: failed to resolve hostname");
+			changeState(ServerHandlerState::DNSFailed);
 			emit error(QAbstractSocket::HostNotFoundError, tr("Unable to resolve hostname"));
 			return;
 		}
+		changeState(ServerHandlerState::DNSResolved);
+	}
+
+	if (isAborted()) {
+		qWarning() << "Aborted!";
+		return;
 	}
 
 	QList< ServerAddress > targetAddresses(qlAddresses);
 	bool shouldTryNextTargetServer = true;
 	do {
+		qInfo() << "ServerHandler run address loop";
 		saTargetServer = qlAddresses.takeFirst();
 
 		tConnectionTimeoutTimer = nullptr;
@@ -468,15 +526,18 @@ void ServerHandler::run() {
 		qsOS        = QString();
 		qsOSVersion = QString();
 
+		changeState(ServerHandlerState::AwaitingConnection);
 		int ret = exec();
 		if (ret == -2) {
 			shouldTryNextTargetServer = true;
 		} else {
 			shouldTryNextTargetServer = false;
 		}
+		changeState(ServerHandlerState::Disconnecting);
 
 		if (qusUdp) {
 			QMutexLocker qml(&qmUdp);
+			qInfo() << "ServerHandler locked qmUdp run()";
 
 #ifdef Q_OS_WIN
 			if (hQoS) {
@@ -502,11 +563,14 @@ void ServerHandler::run() {
 
 		cConnection.reset();
 		while (cptr.use_count() > 1) {
+			qInfo() << "ServerHandler run() msleep loop";
 			msleep(100);
 		}
 		delete qtsSock;
 		delete tConnectionTimeoutTimer;
 	} while (shouldTryNextTargetServer && !qlAddresses.isEmpty());
+
+	qInfo() << "ServerHandler run() done";
 }
 
 #ifdef Q_OS_WIN
@@ -623,6 +687,7 @@ void ServerHandler::sendPingInternal() {
 }
 
 void ServerHandler::message(Mumble::Protocol::TCPMessageType type, const QByteArray &qbaMsg) {
+	qInfo() << "ServerHandler message() " << qToBigEndian(static_cast< quint16 >(type));
 	const char *ptr = qbaMsg.constData();
 	if (type == Mumble::Protocol::TCPMessageType::UDPTunnel) {
 		// audio tunneled through tcp.
@@ -683,26 +748,36 @@ void ServerHandler::message(Mumble::Protocol::TCPMessageType type, const QByteAr
 		}
 	} else {
 		ServerHandlerMessageEvent *shme = new ServerHandlerMessageEvent(qbaMsg, type, false);
+		qInfo() << "ServerHandler message postEvent!";
 		QApplication::postEvent(Global::get().mw, shme);
 	}
 }
 
 void ServerHandler::disconnect() {
+	qInfo() << "ServerHandler disconnect";
 	// Actual TCP object is in a different thread, so signal it
 	// The actual type of this event doesn't matter as we are only abusing the event mechanism to signal the thread to
 	// exit.
-	QByteArray qbaBuffer;
-	ServerHandlerMessageEvent *shme =
-		new ServerHandlerMessageEvent(qbaBuffer, Mumble::Protocol::TCPMessageType::Ping, false);
-	QApplication::postEvent(this, shme);
+	// QByteArray qbaBuffer;
+	// ServerHandlerMessageEvent *shme =
+	// 	new ServerHandlerMessageEvent(qbaBuffer, Mumble::Protocol::TCPMessageType::Ping, false);
+	// QApplication::postEvent(this, shme);
+	emit abortRequested();
+	qInfo() << "ServerHandler disconnet done";
 }
 
 void ServerHandler::serverConnectionClosed(QAbstractSocket::SocketError err, const QString &reason) {
+	qInfo() << "ServerHandler connectionColsed";
+	changeState(ServerHandlerState::ConnectionOver);
 	Connection *c = cConnection.get();
-	if (!c)
+	if (!c) {
+		qInfo() << "ServerHandler return no connection (no exit)";
 		return;
-	if (c->bDisconnectedEmitted)
+	}
+	if (c->bDisconnectedEmitted) {
+		qInfo() << "ServerHandler return disconnectedEmitted (no exit)";
 		return;
+	}
 	c->bDisconnectedEmitted = true;
 
 	AudioOutputPtr ao = Global::get().ao;
@@ -717,6 +792,7 @@ void ServerHandler::serverConnectionClosed(QAbstractSocket::SocketError err, con
 			qWarning("ServerHandler: connection attempt to %s:%i failed: %s (%li); trying next server....",
 					 qPrintable(saTargetServer.host.toString()), static_cast< int >(saTargetServer.port),
 					 qPrintable(reason), static_cast< long >(err));
+			qInfo() << "ServerHandler return exit -2";
 			exit(-2);
 			return;
 		}
@@ -728,6 +804,7 @@ void ServerHandler::serverConnectionClosed(QAbstractSocket::SocketError err, con
 	emit disconnected(err, reason);
 
 	exit(0);
+	qInfo() << "ServerHandler connectionClosed done exit(0)";
 }
 
 void ServerHandler::serverConnectionTimeoutOnConnect() {
@@ -739,6 +816,7 @@ void ServerHandler::serverConnectionTimeoutOnConnect() {
 }
 
 void ServerHandler::serverConnectionStateChanged(QAbstractSocket::SocketState state) {
+	qInfo() << "ServerHandler serverConnectionStateChanged " << state;
 	if (state == QAbstractSocket::ConnectingState) {
 		// Start timer for connection timeout during connect after resolving is completed
 		tConnectionTimeoutTimer = new QTimer();
@@ -747,14 +825,18 @@ void ServerHandler::serverConnectionStateChanged(QAbstractSocket::SocketState st
 		tConnectionTimeoutTimer->start(Global::get().s.iConnectionTimeoutDurationMsec);
 	} else if (state == QAbstractSocket::ConnectedState) {
 		// Start TLS handshake
+		changeState(ServerHandlerState::TLSHandshake);
 		qtsSock->startClientEncryption();
 	}
 }
 
 void ServerHandler::serverConnectionConnected() {
+	qInfo() << "ServerHandler connectionConnected";
 	ConnectionPtr connection(cConnection);
-	if (!connection)
+	if (!connection) {
+		qInfo() << "ServerHandler connectionConnected connectionPtr is nullptr";
 		return;
+	}
 
 	// The ephemeralServerKey property is only a non-null key, if forward secrecy is used.
 	// See also https://doc.qt.io/qt-5/qsslconfiguration.html#ephemeralServerKey
@@ -764,8 +846,9 @@ void ServerHandler::serverConnectionConnected() {
 
 	tConnectionTimeoutTimer->stop();
 
-	if (Global::get().s.bQoS)
+	if (Global::get().s.bQoS) {
 		connection->setToS();
+	}
 
 	qscCert   = connection->peerCertificateChain();
 	qscCipher = connection->sessionCipher();
@@ -781,6 +864,8 @@ void ServerHandler::serverConnectionConnected() {
 		disconnect();
 		return;
 	}
+
+	changeState(ServerHandlerState::Established);
 
 	MumbleProto::Version mpv;
 	mpv.set_release(u8(Version::getRelease()));
@@ -807,6 +892,7 @@ void ServerHandler::serverConnectionConnected() {
 
 	{
 		QMutexLocker qml(&qmUdp);
+		qInfo() << "ServerHandler locked qmUdp serverConnectionConnected";
 
 		qhaRemote      = connection->peerAddress();
 		qhaLocal       = connection->localAddress();
@@ -869,6 +955,7 @@ void ServerHandler::serverConnectionConnected() {
 	}
 
 	emit connected();
+	qInfo() << "ServerHandler conncetionConnected end";
 }
 
 void ServerHandler::setConnectionInfo(const QString &host, unsigned short port, const QString &username,
