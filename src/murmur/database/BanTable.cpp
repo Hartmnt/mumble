@@ -359,13 +359,38 @@ namespace server {
 			}
 		}
 
+		std::string BanTable::selectStmtFactory(unsigned int fromSchemaVersion) {
+			if (fromSchemaVersion < 10) {
+				std::string startConversion = mdb::utils::dateToEpoch("\"start\"", m_backend);
+				std::string baseConversion;
+				switch (m_backend) {
+					case ::mdb::Backend::SQLite:
+					case ::mdb::Backend::MySQL:
+						baseConversion = "HEX(\"base\")";
+						break;
+					case ::mdb::Backend::PostgreSQL:
+						baseConversion = "ENCODE(\"base\"::bytea, 'hex')";
+						break;
+				}
+				assert(!baseConversion.empty());
+
+				return ("SELECT \"server_id\", " + baseConversion + ", \"mask\", \"hash\", \"name\", \"reason\", "
+						+ startConversion + ", \"duration\" FROM \"bans"
+						+ std::string(::mdb::Database::OLD_TABLE_SUFFIX) + "\"");
+			}
+
+			return ("SELECT \"server_id\", \"ipv6_base_address\", \"prefix_length\", \"banned_user_cert_hash\", "
+					"\"banned_user_name\", \"reason\", \"start_date\", \"duration\" FROM \"bans"
+					+ std::string(::mdb::Database::OLD_TABLE_SUFFIX) + "\"");
+		}
+
 		void BanTable::migrate(unsigned int fromSchemaVersion, unsigned int toSchemaVersion) {
 			// Note: Always hard-code table and column names in this function in order to ensure that this
 			// migration path always stays the same regardless of whether the respective named constants change.
 			assert(fromSchemaVersion <= toSchemaVersion);
 
 			try {
-				if (fromSchemaVersion < 10) {
+				if (fromSchemaVersion < 11) {
 					// Before v4, we stored IPv4 addresses in the DB and there only were the fields server_id, base (the
 					// IPv4 address) and mask.
 					// In v10 the following columns have been renamed:
@@ -376,34 +401,22 @@ namespace server {
 					// "hash" -> "banned_user_cert_hash"
 					// "start" -> "start_date" Also we changed its type from a native DATE format into using epoch
 					//		seconds.
+					// Before v11, a ban was allowed to have a NULL value for the certificate hash. v11 enables admins
+					// to selectively ban IP or Hash or both. This requires to add the Hash to the primary key.
+					// Since not all database backends allow to have NULL in a primary key or unique index, we have to
+					// convert all NULL values for certificate hashes to an empty string.
 					soci::row row;
 
-					std::string startConversion = mdb::utils::dateToEpoch("\"start\"", m_backend);
-					std::string baseConversion;
-					switch (m_backend) {
-						case ::mdb::Backend::SQLite:
-						case ::mdb::Backend::MySQL:
-							baseConversion = "HEX(\"base\")";
-							break;
-						case ::mdb::Backend::PostgreSQL:
-							baseConversion = "ENCODE(\"base\"::bytea, 'hex')";
-							break;
-					}
-					assert(!baseConversion.empty());
-
 					soci::statement selectStmt =
-						(m_sql.prepare << "SELECT \"server_id\", " << baseConversion
-									   << ", \"mask\", \"name\", \"hash\", \"reason\", " << startConversion
-									   << ", \"duration\" FROM \"bans" << ::mdb::Database::OLD_TABLE_SUFFIX << "\"",
-						 soci::into(row));
+						(m_sql.prepare << selectStmtFactory(fromSchemaVersion), soci::into(row));
 
 					soci::statement insertStmt =
 						m_sql.prepare
 						<< "INSERT INTO \"" << NAME << "\" (\"" << column::server_id << "\", \"" << column::base_address
-						<< "\", \"" << column::prefix_length << "\", \"" << column::user_name << "\", \""
-						<< column::cert_hash << "\", \"" << column::reason << "\", \"" << column::start_date << "\", \""
+						<< "\", \"" << column::prefix_length << "\", \"" << column::cert_hash << "\", \""
+						<< column::user_name << "\", \"" << column::reason << "\", \"" << column::start_date << "\", \""
 						<< column::duration
-						<< "\") VALUES (:serverID, :baseAddr, :prefixLength, :userName, :certHash, :reason, "
+						<< "\") VALUES (:serverID, :baseAddr, :prefixLength, :certHash, :userName, :reason, "
 						   ":startDate, :duration)";
 
 					selectStmt.execute(false);
@@ -412,10 +425,9 @@ namespace server {
 						int serverID;
 						std::string baseAddress;
 						int prefixLength;
+						std::string bannedCertHash = "";
 						std::string bannedName;
 						soci::indicator nameInd = soci::i_null;
-						std::string bannedCertHash;
-						soci::indicator certInd = soci::i_null;
 						std::string reason;
 						soci::indicator reasonInd = soci::i_null;
 						long long startDate       = 0;
@@ -443,21 +455,24 @@ namespace server {
 						assert(row.get_indicator(6) == soci::i_ok);
 						assert(row.get_properties(7).get_data_type() == soci::dt_integer);
 
-						bool success          = false;
-						DBBan::ipv6_type ipv6 = ::mdb::utils::hexToBinary< DBBan::ipv6_type >(baseAddress, &success);
-						if (!success) {
-							throw ::mdb::MigrationException("Encountered invalid hex representation of IPv6 address '"
-															+ baseAddress + "' while migrating table \"" + NAME + "\"");
+						if (fromSchemaVersion < 10) {
+							bool success = false;
+							DBBan::ipv6_type ipv6 =
+								::mdb::utils::hexToBinary< DBBan::ipv6_type >(baseAddress, &success);
+							if (!success) {
+								throw ::mdb::MigrationException(
+									"Encountered invalid hex representation of IPv6 address '" + baseAddress
+									+ "' while migrating table \"" + NAME + "\"");
+							}
+							baseAddress = DBBan::ipv6ToString(ipv6);
 						}
-						baseAddress = DBBan::ipv6ToString(ipv6);
 
 						if (row.get_indicator(3) == soci::i_ok) {
-							bannedName = row.get< std::string >(3);
-							nameInd    = soci::i_ok;
+							bannedCertHash = row.get< std::string >(3);
 						}
 						if (row.get_indicator(4) == soci::i_ok) {
-							bannedCertHash = row.get< std::string >(4);
-							certInd        = soci::i_ok;
+							bannedName = row.get< std::string >(4);
+							nameInd    = soci::i_ok;
 						}
 						if (row.get_indicator(5) == soci::i_ok) {
 							reason    = row.get< std::string >(5);
@@ -477,8 +492,8 @@ namespace server {
 						insertStmt.exchange(soci::use(serverID));
 						insertStmt.exchange(soci::use(baseAddress));
 						insertStmt.exchange(soci::use(prefixLength));
+						insertStmt.exchange(soci::use(bannedCertHash));
 						insertStmt.exchange(soci::use(bannedName, nameInd));
-						insertStmt.exchange(soci::use(bannedCertHash, certInd));
 						insertStmt.exchange(soci::use(reason, reasonInd));
 						insertStmt.exchange(soci::use(startDate));
 						insertStmt.exchange(soci::use(duration));
