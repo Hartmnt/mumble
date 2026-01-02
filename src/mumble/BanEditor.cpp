@@ -21,6 +21,8 @@ BanEditor::BanEditor(const MumbleProto::BanList &msg, QWidget *p) : QDialog(p), 
 	qlwBans->setFocus();
 
 	qlBans.clear();
+	m_uniqueBans.clear();
+
 	for (int i = 0; i < msg.bans_size(); ++i) {
 		const MumbleProto::BanList_BanEntry &be = msg.bans(i);
 		Ban b;
@@ -43,6 +45,7 @@ BanEditor::BanEditor(const MumbleProto::BanList &msg, QWidget *p) : QDialog(p), 
 
 		if (b.isValid()) {
 			qlBans << b;
+			m_uniqueBans.insert(b.toKey());
 		}
 	}
 
@@ -130,6 +133,10 @@ Ban BanEditor::toBan(bool &ok) {
 
 	ok = b.isValid();
 
+	if (m_uniqueBans.contains(b.toKey())) {
+		ok = false;
+	}
+
 	return b;
 }
 
@@ -142,6 +149,7 @@ void BanEditor::on_qpbAdd_clicked() {
 
 	if (ok) {
 		qlBans << b;
+		m_uniqueBans.insert(b.toKey());
 		refreshBanList();
 		qlwBans->setCurrentRow(static_cast< int >(qlBans.indexOf(b)));
 	}
@@ -156,7 +164,12 @@ void BanEditor::on_qpbUpdate_clicked() {
 		bool ok;
 		Ban b = toBan(ok);
 		if (ok) {
+			const Ban &old = qlBans.at(idx);
+			m_uniqueBans.erase(old.toKey());
+
 			qlBans.replace(idx, b);
+			m_uniqueBans.insert(b.toKey());
+
 			refreshBanList();
 			qlwBans->setCurrentRow(static_cast< int >(qlBans.indexOf(b)));
 		}
@@ -166,7 +179,9 @@ void BanEditor::on_qpbUpdate_clicked() {
 void BanEditor::on_qpbRemove_clicked() {
 	int idx = qlwBans->currentRow();
 	if (idx >= 0) {
+		const Ban &old = qlBans.at(idx);
 		qlBans.removeAt(idx);
+		m_uniqueBans.erase(old.toKey());
 	}
 	refreshBanList();
 
