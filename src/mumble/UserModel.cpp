@@ -1200,9 +1200,8 @@ void UserModel::setComment(ClientUser *cu, const QString &comment) {
 				uiSessionComment   = 0;
 				item->bCommentSeen = false;
 				if (bClicked) {
-					QRect r = Global::get().mw->qtvUsers->visualRect(index(cu));
-					QWhatsThis::showText(Global::get().mw->qtvUsers->viewport()->mapToGlobal(r.bottomRight()),
-										 data(index(cu, 0), Qt::ToolTipRole).toString(), Global::get().mw->qtvUsers);
+					QWhatsThis::showText(QCursor::pos(), data(index(cu, 0), Qt::ToolTipRole).toString(),
+										 Global::get().mw->qtvUsers);
 				} else {
 					QToolTip::showText(QCursor::pos(), data(index(cu, 0), Qt::ToolTipRole).toString(),
 									   Global::get().mw->qtvUsers);
@@ -1266,9 +1265,8 @@ void UserModel::setComment(Channel *c, const QString &comment) {
 				iChannelDescription = -1;
 				item->bCommentSeen  = false;
 				if (bClicked) {
-					QRect r = Global::get().mw->qtvUsers->visualRect(index(c));
-					QWhatsThis::showText(Global::get().mw->qtvUsers->viewport()->mapToGlobal(r.bottomRight()),
-										 data(index(c, 0), Qt::ToolTipRole).toString(), Global::get().mw->qtvUsers);
+					QWhatsThis::showText(QCursor::pos(), data(index(c, 0), Qt::ToolTipRole).toString(),
+										 Global::get().mw->qtvUsers);
 				} else {
 					QToolTip::showText(QCursor::pos(), data(index(c, 0), Qt::ToolTipRole).toString(),
 									   Global::get().mw->qtvUsers);

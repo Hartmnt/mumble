@@ -226,7 +226,7 @@ void UserView::mouseReleaseEvent(QMouseEvent *evt) {
 				if (str.isEmpty()) {
 					userModel->bClicked = true;
 				} else {
-					QWhatsThis::showText(viewport()->mapToGlobal(r.bottomRight()), str, this);
+					QWhatsThis::showText(QCursor::pos(), str, this);
 					userModel->seenComment(idx);
 				}
 				return;
