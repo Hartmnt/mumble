@@ -1442,8 +1442,8 @@ void MainWindow::loadState(const bool minimalView) {
 	if (minimalView) {
 		QByteArray geometry                    = Global::get().s.qbaMinimalViewGeometry;
 		QByteArray state                       = Global::get().s.qbaMinimalViewState;
-		Global::get().s.qbaMinimalViewGeometry = QByteArray("");
-		Global::get().s.qbaMinimalViewState    = QByteArray("");
+		Global::get().s.qbaMinimalViewGeometry = QByteArray();
+		Global::get().s.qbaMinimalViewState    = QByteArray();
 
 		Global::get().s.save();
 
@@ -1456,8 +1456,8 @@ void MainWindow::loadState(const bool minimalView) {
 	} else {
 		QByteArray geometry                   = Global::get().s.qbaMainWindowGeometry;
 		QByteArray state                      = Global::get().s.qbaMainWindowState;
-		Global::get().s.qbaMainWindowGeometry = QByteArray("");
-		Global::get().s.qbaMainWindowState    = QByteArray("");
+		Global::get().s.qbaMainWindowGeometry = QByteArray();
+		Global::get().s.qbaMainWindowState    = QByteArray();
 
 		Global::get().s.save();
 
